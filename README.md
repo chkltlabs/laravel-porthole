@@ -44,15 +44,24 @@ Gate::define('viewPorthole', function (User $user): bool {
 
 Horizon, Pulse, and Telescope still apply their own gates. A caller needs both `viewPorthole` and the source gate.
 
-Point HTTP auth at the guard your MCP clients already use:
+Point HTTP auth at the guard your MCP clients already use. When HTTP auth is required (the default) and this is empty, Porthole does **not** register `POST /mcp/porthole`.
 
 ```env
 PORTHOLE_AUTH_MIDDLEWARE=auth:sanctum
 ```
 
-Passport apps should use `auth:api`. For OAuth discovery and dynamic client registration, set `PORTHOLE_OAUTH_ENABLED=true`. Leave that off until you intend to expose the public registration route.
+Passport apps should use `auth:api`. The HTTP route is also throttled (`PORTHOLE_HTTP_THROTTLE`, default `60,1`). Set that empty to disable the limiter.
 
-`PORTHOLE_AUTH_REQUIRED=false` removes the authentication check. Leave it unset on any shared environment. Unrecognized values keep authentication required.
+For OAuth discovery and dynamic client registration, set `PORTHOLE_OAUTH_ENABLED=true`. Leave that off until you intend to expose the public registration route.
+
+HTTP and stdio auth are separate:
+
+```env
+PORTHOLE_HTTP_AUTH_REQUIRED=true
+PORTHOLE_STDIO_AUTH_REQUIRED=false
+```
+
+`PORTHOLE_STDIO_AUTH_REQUIRED=false` trusts the local process and skips `viewPorthole` and the source gates for stdio tool calls only. It does not open HTTP. `PORTHOLE_AUTH_REQUIRED` is a legacy switch that applies only to a transport whose specific flag is unset. Unrecognized values keep authentication required.
 
 ## Connect an AI coding agent
 
@@ -72,7 +81,7 @@ Pasting a stdio JSON block into an MCP settings file does **not** open a browser
 3. The client lists tools. Read tools appear when Horizon, Pulse, and/or Telescope are installed.
 4. The first tool call checks `$request->user()` and the gates.
 5. On stdio there is normally **no logged-in user**, so you get `Authentication is required to read Porthole data` until you either:
-   - set `PORTHOLE_AUTH_REQUIRED=false` for that local environment only, or
+   - set `PORTHOLE_STDIO_AUTH_REQUIRED=false` for that local environment (HTTP stays authenticated), or
    - switch to **HTTP** and send a Sanctum/Passport credential.
 
 ### App setup by transport
@@ -81,8 +90,10 @@ Pasting a stdio JSON block into an MCP settings file does **not** open a browser
 
 ```env
 PORTHOLE_STDIO_ENABLED=true
-# Optional for a private local app only:
-# PORTHOLE_AUTH_REQUIRED=false
+PORTHOLE_HTTP_AUTH_REQUIRED=true
+PORTHOLE_AUTH_MIDDLEWARE=auth:sanctum
+# Optional for a private local process only. Does not disable HTTP auth.
+# PORTHOLE_STDIO_AUTH_REQUIRED=false
 ```
 
 Confirm the handle:
@@ -410,7 +421,8 @@ Open the MCP settings UI and paste a standard `mcpServers` JSON block (stdio or 
 | --- | --- |
 | `mcp:start porthole` unknown / server missing | `PORTHOLE_STDIO_ENABLED` is still false |
 | `artisan` not found | Wrong `cwd` / missing absolute path |
-| `Authentication is required to read Porthole data` | Stdio with no user; use local `PORTHOLE_AUTH_REQUIRED=false` or switch to HTTP + token |
+| `Authentication is required to read Porthole data` | Stdio with no user; set `PORTHOLE_STDIO_AUTH_REQUIRED=false` locally, or switch to HTTP + token |
+| HTTP 404 on `/mcp/porthole` | HTTP auth is required and `PORTHOLE_AUTH_MIDDLEWARE` is empty, so the route was not registered |
 | `You are not authorized to use Porthole` | User is authenticated but `viewPorthole` is missing or fails |
 | VS Code ignores a pasted Cursor file | Workspace file must use `"servers"`, not `"mcpServers"` |
 | Claude Code skips a remote entry | Add `"type": "http"` next to `url` |
@@ -449,7 +461,7 @@ PORTHOLE_DESTRUCTIVE_ENABLED=true
 
 `writes_enabled` registers `horizon-pause`, `horizon-continue`, and `horizon-retry-failed-job`.
 
-`destructive_enabled` registers `telescope-prune`. Retention hours are capped by `PORTHOLE_PRUNE_MAX_HOURS` (default 168).
+`destructive_enabled` registers `telescope-prune`. Retention hours must fall between `PORTHOLE_PRUNE_MIN_HOURS` (default 24) and `PORTHOLE_PRUNE_MAX_HOURS` (default 168).
 
 ## Tests
 

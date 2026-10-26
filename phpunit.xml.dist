@@ -5,6 +5,9 @@
          colors="true"
          cacheDirectory=".phpunit.cache"
 >
+    <php>
+        <env name="PORTHOLE_AUTH_MIDDLEWARE" value="Illuminate\Http\Middleware\ValidatePostSize"/>
+    </php>
     <testsuites>
         <testsuite name="Porthole">
             <directory>tests</directory>
