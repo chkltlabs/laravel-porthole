@@ -68,7 +68,7 @@ it('does not register the http server when auth is required and middleware is em
 
     $logger = Mockery::mock(LoggerInterface::class);
     $logger->shouldReceive('warning')->once()->withArgs(
-        fn (string $message): bool => str_contains($message, 'PORTHOLE_AUTH_MIDDLEWARE'),
+        fn (string $message): bool => str_contains($message, 'porthole.auth.middleware'),
     );
     Log::swap($logger);
 

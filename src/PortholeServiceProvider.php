@@ -8,6 +8,7 @@ use Chkltlabs\Porthole\Horizon\ArtisanHorizonOperator;
 use Chkltlabs\Porthole\Horizon\HorizonOperator;
 use Chkltlabs\Porthole\Http\Middleware\RequirePortholeAuthentication;
 use Chkltlabs\Porthole\Support\AuthFlags;
+use Chkltlabs\Porthole\Support\ConfigExample;
 use Chkltlabs\Porthole\Support\Redactor;
 use Chkltlabs\Porthole\Telescope\RepositoryTelescopeOperator;
 use Chkltlabs\Porthole\Telescope\TelescopeOperator;
@@ -38,6 +39,13 @@ class PortholeServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../config/porthole.php' => config_path('porthole.php'),
             ], 'porthole-config');
+
+            if (! $this->app->runningUnitTests()) {
+                ConfigExample::publishIfMissing(
+                    __DIR__.'/../config/porthole.php',
+                    config_path('porthole.php'),
+                );
+            }
         }
 
         if (config('porthole.enabled', true) !== true) {
@@ -63,7 +71,7 @@ class PortholeServiceProvider extends ServiceProvider
         ));
 
         if (AuthFlags::httpRequired() && $middleware === []) {
-            Log::warning('Porthole HTTP server was not registered because authentication is required and PORTHOLE_AUTH_MIDDLEWARE is empty.');
+            Log::warning('Porthole HTTP server was not registered because authentication is required and porthole.auth.middleware is empty.');
 
             return;
         }
