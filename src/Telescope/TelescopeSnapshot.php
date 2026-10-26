@@ -130,7 +130,7 @@ final class TelescopeSnapshot
         $summary = match ($type) {
             'request' => [
                 'method' => $content['method'] ?? null,
-                'uri' => isset($content['uri']) && is_string($content['uri']) ? $this->redactor->truncate($content['uri']) : null,
+                'uri' => isset($content['uri']) && is_string($content['uri']) ? $this->redactor->scrub($content['uri']) : null,
                 'status' => $content['response_status'] ?? null,
                 'duration_ms' => $content['duration'] ?? null,
             ],
@@ -142,7 +142,7 @@ final class TelescopeSnapshot
             ],
             'exception' => [
                 'class' => $content['class'] ?? null,
-                'message' => isset($content['message']) && is_string($content['message']) ? $this->redactor->truncate($content['message']) : null,
+                'message' => isset($content['message']) && is_string($content['message']) ? $this->redactor->scrub($content['message']) : null,
                 'file' => $content['file'] ?? null,
                 'line' => $content['line'] ?? null,
             ],
@@ -153,11 +153,11 @@ final class TelescopeSnapshot
             ],
             'log' => [
                 'level' => $content['level'] ?? null,
-                'message' => isset($content['message']) && is_string($content['message']) ? $this->redactor->truncate($content['message']) : null,
+                'message' => isset($content['message']) && is_string($content['message']) ? $this->redactor->scrub($content['message']) : null,
             ],
             'client_request' => [
                 'method' => $content['method'] ?? null,
-                'uri' => isset($content['uri']) && is_string($content['uri']) ? $this->redactor->truncate($content['uri']) : null,
+                'uri' => isset($content['uri']) && is_string($content['uri']) ? $this->redactor->scrub($content['uri']) : null,
                 'status' => $content['response_status'] ?? null,
                 'duration_ms' => $content['duration'] ?? null,
             ],

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Chkltlabs\Porthole\Tools\Telescope;
 
+use Chkltlabs\Porthole\Support\EnvBoolean;
 use Chkltlabs\Porthole\Support\InstalledPackage;
 use Chkltlabs\Porthole\Telescope\TelescopeOperator;
 use Chkltlabs\Porthole\Tools\Concerns\AuthorizesPorthole;
@@ -40,7 +41,7 @@ class PruneTelescopeEntriesTool extends Tool
             return $denied;
         }
 
-        $minHours = max(1, (int) config('porthole.prune_min_hours', 24));
+        $minHours = $this->minimumHours();
         $maxHours = max($minHours, (int) config('porthole.prune_max_hours', 168));
 
         $validated = $request->validate([
@@ -66,5 +67,14 @@ class PruneTelescopeEntriesTool extends Tool
             'hours' => $schema->integer()->description('Hours of Telescope data to retain. The package caps this value.'),
             'keep_exceptions' => $schema->boolean()->description('Retain exception entries when true.'),
         ];
+    }
+
+    private function minimumHours(): int
+    {
+        $configured = max(1, (int) config('porthole.prune_min_hours', 24));
+        $shortRetention = app()->environment('local')
+            && EnvBoolean::parse(config('porthole.prune_allow_short_retention'), false);
+
+        return $shortRetention ? $configured : max(24, $configured);
     }
 }

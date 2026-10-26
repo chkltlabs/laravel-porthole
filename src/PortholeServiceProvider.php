@@ -9,6 +9,7 @@ use Chkltlabs\Porthole\Horizon\HorizonOperator;
 use Chkltlabs\Porthole\Http\Middleware\RequirePortholeAuthentication;
 use Chkltlabs\Porthole\Support\AuthFlags;
 use Chkltlabs\Porthole\Support\ConfigExample;
+use Chkltlabs\Porthole\Support\EnvBoolean;
 use Chkltlabs\Porthole\Support\Redactor;
 use Chkltlabs\Porthole\Telescope\RepositoryTelescopeOperator;
 use Chkltlabs\Porthole\Telescope\TelescopeOperator;
@@ -54,10 +55,7 @@ class PortholeServiceProvider extends ServiceProvider
 
         $this->registerHttpServer();
         $this->registerLocalStdio();
-
-        if (config('porthole.oauth.enabled') === true && class_exists(Passport::class)) {
-            Mcp::oauthRoutes();
-        }
+        $this->registerOAuth();
     }
 
     private function registerHttpServer(): void
@@ -67,8 +65,8 @@ class PortholeServiceProvider extends ServiceProvider
             fn (mixed $entry): bool => is_string($entry) && $entry !== '',
         ));
 
-        if (AuthFlags::httpRequired() && $middleware === []) {
-            Log::warning('Porthole HTTP server was not registered because authentication is required and porthole.auth.middleware is empty.');
+        if ($middleware === []) {
+            Log::warning('Porthole HTTP server was not registered because porthole.auth.middleware is empty.');
 
             return;
         }
@@ -107,5 +105,23 @@ class PortholeServiceProvider extends ServiceProvider
         }
 
         Mcp::local((string) config('porthole.stdio.handle', 'porthole'), PortholeServer::class);
+    }
+
+    private function registerOAuth(): void
+    {
+        if (! EnvBoolean::parse(config('porthole.oauth.enabled'), false) || ! class_exists(Passport::class)) {
+            return;
+        }
+
+        $local = $this->app->environment('local');
+        $allowNonLocal = EnvBoolean::parse(config('porthole.oauth.allow_non_local'), false);
+
+        if (! $local && ! $allowNonLocal) {
+            Log::warning('Porthole OAuth routes were not registered because the application environment is not local and porthole.oauth.allow_non_local is false.');
+
+            return;
+        }
+
+        Mcp::oauthRoutes('oauth', EnvBoolean::parse(config('porthole.oauth.dynamic_registration'), false));
     }
 }

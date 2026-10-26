@@ -33,10 +33,10 @@ final class AuthFlags
         $value = config('porthole.auth.'.$key);
 
         if ($value === null) {
-            return config('porthole.auth.required', true) === true;
+            $value = config('porthole.auth.required', true);
         }
 
-        return $value === true;
+        return EnvBoolean::parse($value, true);
     }
 
     private static function isPresent(mixed $value): bool

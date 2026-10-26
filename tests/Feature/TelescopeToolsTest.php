@@ -100,6 +100,27 @@ it('caps prune retention and calls the operator only when destructive tools are 
 
     expect($operator->hours)->toBe(48);
 
+    config([
+        'porthole.prune_min_hours' => 1,
+        'porthole.prune_allow_short_retention' => true,
+    ]);
+
+    PortholeServer::actingAs(new PortholeUser)
+        ->tool(PruneTelescopeEntriesTool::class, ['hours' => 1])
+        ->assertHasErrors();
+
+    expect($operator->hours)->toBe(48);
+
+    app()->instance('env', 'local');
+
+    PortholeServer::actingAs(new PortholeUser)
+        ->tool(PruneTelescopeEntriesTool::class, ['hours' => 1])
+        ->assertOk();
+
+    expect($operator->hours)->toBe(1);
+
+    app()->instance('env', 'testing');
+
     PortholeServer::actingAs(new PortholeUser)
         ->tool(PruneTelescopeEntriesTool::class)
         ->assertOk();

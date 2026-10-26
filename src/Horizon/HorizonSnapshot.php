@@ -130,7 +130,7 @@ final class HorizonSnapshot
             'connection' => $job->connection ?? null,
             'queue' => $job->queue ?? null,
             'status' => $job->status ?? null,
-            'exception' => isset($job->exception) ? $this->redactor->truncate((string) $job->exception) : null,
+            'exception' => isset($job->exception) ? $this->redactor->scrub((string) $job->exception) : null,
             'failed_at' => $job->failed_at ?? null,
             'completed_at' => $job->completed_at ?? null,
         ];

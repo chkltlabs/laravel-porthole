@@ -40,26 +40,32 @@ use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 
 Gate::define('viewPorthole', function (User $user): bool {
-    return (bool) $user->is_admin;
+    return $user->hasRole('staff');
+});
+
+Gate::define('mutateHorizon', function (User $user): bool {
+    return $user->hasRole('staff');
 });
 ```
 
+An institution admin is not this role. `viewPorthole` is a staff gate for reading operational data. `mutateHorizon` is a separate staff gate for pausing Horizon, resuming it, and retrying a job. A missing `mutateHorizon` gate denies those writes.
+
 Horizon, Pulse, and Telescope still apply their own gates. A caller needs both `viewPorthole` and the source gate.
 
-Point HTTP auth at the guard your MCP clients already use. When `auth.http_required` is true (the default) and `auth.middleware` is empty, Porthole does **not** register `POST /mcp/porthole`.
+Point HTTP auth at the guard your MCP clients already use. Porthole does **not** register `POST /mcp/porthole` when `auth.middleware` is empty, including when `auth.http_required` is false.
 
 ```php
 'auth' => [
     'middleware' => [
-        'auth:sanctum',
+        'auth:api',
     ],
     'throttle' => '60,1',
 ],
 ```
 
-Passport apps should use `auth:api`. Set `auth.throttle` to an empty string to disable the limiter.
+Sanctum apps can use `auth:sanctum` instead. Set `auth.throttle` to an empty string to disable the limiter.
 
-For OAuth discovery and dynamic client registration, set `oauth.enabled` to true. Leave that false until you intend to expose the public registration route.
+OAuth discovery stays off until `oauth.enabled` is true, Passport is installed, and the app is running in `local` (or `oauth.allow_non_local` is true). Dynamic client registration stays off until `oauth.dynamic_registration` is true. Turning OAuth on adds the `mcp:use` scope to that Passport issuer. Do not enable it on an issuer shared with a mobile app unless that scope change is intended.
 
 HTTP and stdio auth are separate keys in the same file:
 
@@ -79,7 +85,7 @@ Porthole speaks MCP. Your editor or CLI agent is the MCP *client*. There are two
 | Transport | How the client reaches Porthole | Typical auth |
 | --- | --- | --- |
 | **Local stdio** | Client spawns `php artisan mcp:start porthole` in your app. Registered only when the Laravel environment is `local`. | Trust the machine, or disable auth for that local env |
-| **HTTP** | Client calls `https://your-app.test/mcp/porthole` | Sanctum bearer token, or Passport OAuth |
+| **HTTP** | Client calls `https://your-app.test/mcp/porthole` | Passport bearer token, or Sanctum |
 
 Pasting a stdio JSON block into an MCP settings file does **not** open a browser login. Cursor (and most other tools) start a local process and talk over stdin/stdout. Auth still runs inside each tool call.
 
@@ -91,7 +97,7 @@ Pasting a stdio JSON block into an MCP settings file does **not** open a browser
 4. The first tool call checks `$request->user()` and the gates.
 5. On stdio there is normally **no logged-in user**, so you get `Authentication is required to read Porthole data` until you either:
    - set `auth.stdio_required` to false in `config/porthole.php` for that local app (HTTP stays authenticated), or
-   - switch to **HTTP** and send a Sanctum/Passport credential.
+   - switch to **HTTP** and send a Passport or Sanctum credential.
 
 ### App setup by transport
 
@@ -103,7 +109,7 @@ Stdio registers only when `APP_ENV=local` and `stdio.enabled` is true. Staging, 
 'auth' => [
     'http_required' => true,
     'stdio_required' => true, // false trusts this machine only
-    'middleware' => ['auth:sanctum'],
+    'middleware' => ['auth:api'],
 ],
 
 'stdio' => [
@@ -117,19 +123,21 @@ Confirm the handle:
 php artisan list mcp
 ```
 
-**HTTP + Sanctum (same team, fixed token)**
+**HTTP + Passport (same team, fixed token)**
 
 ```php
 'auth' => [
-    'middleware' => ['auth:sanctum'],
+    'middleware' => ['auth:api'],
 ],
 ```
 
 Issue a personal access token for a user that passes `viewPorthole` (and the source gates). Clients send:
 
 ```http
-Authorization: Bearer YOUR_SANCTUM_TOKEN
+Authorization: Bearer YOUR_ACCESS_TOKEN
 ```
+
+Sanctum apps use `auth:sanctum` and a Sanctum token in that same header.
 
 **HTTP + Passport OAuth (external / interactive clients)**
 
@@ -140,10 +148,12 @@ Authorization: Bearer YOUR_SANCTUM_TOKEN
 
 'oauth' => [
     'enabled' => true,
+    'dynamic_registration' => false,
+    'allow_non_local' => false,
 ],
 ```
 
-The client discovers OAuth metadata, registers if needed, opens a browser to authorize, then sends the access token on later requests. That flow is handled by Passport + `laravel/mcp`, not by the stdio JSON snippet.
+The client discovers OAuth metadata, opens a browser to authorize, then sends the access token on later requests. That flow is handled by Passport + `laravel/mcp`, not by the stdio JSON snippet. Leave `dynamic_registration` false unless you intend to expose `POST /oauth/register`. Leave `allow_non_local` false outside local development. Enabling these routes adds `mcp:use` to the Passport issuer in that process.
 
 Do not commit real tokens. Prefer env vars / your tool’s secret inputs.
 
@@ -159,13 +169,13 @@ Do not commit real tokens. Prefer env vars / your tool’s secret inputs.
 }
 ```
 
-**HTTP + Sanctum**:
+**HTTP**:
 
 ```json
 {
   "url": "https://your-app.test/mcp/porthole",
   "headers": {
-    "Authorization": "Bearer YOUR_SANCTUM_TOKEN"
+    "Authorization": "Bearer YOUR_ACCESS_TOKEN"
   }
 }
 ```
@@ -470,7 +480,7 @@ Open the MCP settings UI and paste a standard `mcpServers` JSON block (stdio or 
 
 Pulse periods are `1h`, `6h`, `24h`, and `7d`.
 
-Horizon job payloads are reduced to the display name. Telescope query bindings, cookies, authorization headers, and trace arguments are removed. Sensitive array keys such as `password`, `token`, and `secret` are replaced with `[redacted]`.
+Horizon job payloads are reduced to the display name. Telescope query bindings, cookies, authorization headers, and trace arguments are removed. Sensitive array keys such as `password`, `token`, `secret`, `email`, `account_number`, `routing_number`, and `private_key` are replaced with `[redacted]`. Quoted SQL strings and unquoted numeric literals are masked. URLs lose their query strings, including in exception, log, and job-exception text. This is not a tenant boundary: a caller who can read a source can still see that source's operational data.
 
 ## Writes
 
@@ -481,9 +491,9 @@ These tools are absent from `tools/list` until the matching flag is true. Callin
 'destructive_enabled' => true,
 ```
 
-`writes_enabled` registers `horizon-pause`, `horizon-continue`, and `horizon-retry-failed-job`.
+`writes_enabled` registers `horizon-pause`, `horizon-continue`, and `horizon-retry-failed-job`. Those tools also require a defined, passing `mutateHorizon` gate. Retry stays refused unless `writes.retry_allowlist` contains the failed job's display name. An empty allowlist refuses every retry.
 
-`destructive_enabled` registers `telescope-prune`. Retention hours must fall between `prune_min_hours` (default 24) and `prune_max_hours` (default 168).
+`destructive_enabled` registers `telescope-prune`. Retention hours must fall between the prune floor and `prune_max_hours` (default 168). Outside `local`, the floor is at least 24 hours even when `prune_min_hours` is lower. `prune_allow_short_retention` is honored only when the environment is `local`.
 
 ## Tests
 
