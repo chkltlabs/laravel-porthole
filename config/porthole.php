@@ -108,10 +108,12 @@ return [
     | and it registers only when the application environment is "local".
     | Tool calls still require an authenticated, authorized user unless
     | auth.stdio_required is false. That flag does not affect HTTP. OAuth
-    | routes register only when oauth.enabled is true, Passport is installed,
-    | and the environment is local or oauth.allow_non_local is true. Dynamic
-    | client registration stays off unless oauth.dynamic_registration is true.
-    | Enabling OAuth adds the mcp:use scope to the Passport issuer.
+    | uses an issuer that belongs to Porthole. It does not call Passport,
+    | register clients on the application's oauth_clients table, or change
+    | the application's scopes. Routes register only when oauth.enabled is
+    | true and the environment is local or oauth.allow_non_local is true.
+    | Dynamic client registration stays off unless oauth.dynamic_registration
+    | is true. Run the porthole OAuth migrations before enabling it.
     |
     */
 
@@ -124,6 +126,32 @@ return [
         'enabled' => EnvBoolean::parse(env('PORTHOLE_OAUTH_ENABLED', false), false),
         'dynamic_registration' => EnvBoolean::parse(env('PORTHOLE_OAUTH_DYNAMIC_REGISTRATION', false), false),
         'allow_non_local' => EnvBoolean::parse(env('PORTHOLE_OAUTH_ALLOW_NON_LOCAL', false), false),
+
+        /*
+        | Route prefix for the Porthole authorization server. This must not be
+        | "oauth", which is the application's Passport issuer.
+        */
+        'prefix' => env('PORTHOLE_OAUTH_PREFIX', 'porthole/oauth'),
+
+        /*
+        | Browser session used while a person approves an MCP client. Token
+        | requests do not use this guard. user_provider overrides the provider
+        | used to resolve that person from a Porthole access token.
+        */
+        'web_guard' => 'web',
+        'user_provider' => null,
+        'login' => 'login',
+
+        /*
+        | Extra redirect schemes for native MCP clients, comma-separated in
+        | PORTHOLE_OAUTH_REDIRECT_SCHEMES. http is limited to loopback hosts.
+        | https is allowed. The application's mcp.custom_schemes list is also
+        | honored.
+        */
+        'redirect_schemes' => array_values(array_filter(array_map(
+            static fn (string $scheme): string => strtolower(trim($scheme)),
+            explode(',', (string) env('PORTHOLE_OAUTH_REDIRECT_SCHEMES', '')),
+        ))),
     ],
 
     'limits' => [

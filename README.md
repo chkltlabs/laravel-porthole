@@ -65,7 +65,9 @@ Point HTTP auth at the guard your MCP clients already use. Porthole does **not**
 
 Sanctum apps can use `auth:sanctum` instead. Set `auth.throttle` to an empty string to disable the limiter.
 
-OAuth discovery stays off until `oauth.enabled` is true, Passport is installed, and the app is running in `local` (or `oauth.allow_non_local` is true). Dynamic client registration stays off until `oauth.dynamic_registration` is true. Turning OAuth on adds the `mcp:use` scope to that Passport issuer. Do not enable it on an issuer shared with a mobile app unless that scope change is intended.
+OAuth stays off until `oauth.enabled` is true and the app is running in `local` (or `oauth.allow_non_local` is true). Porthole then serves its own authorization server at `/porthole/oauth`. That issuer has its own client table and the `mcp:use` scope. It does not register Passport routes, call `Passport::tokensCan()`, or change `ignoreRoutes()` and `$user->createToken()`. A token from this flow is not an application API token. Point Cursor at the Porthole issuer only.
+
+Dynamic client registration stays off until `oauth.dynamic_registration` is true. With it off, create a public client with `php artisan porthole:oauth-client`. Run `php artisan vendor:publish --tag=porthole-migrations` and migrate before enabling OAuth. When OAuth is on, `auth.middleware` can stay empty: the package authenticates its own access tokens. Do not put `auth:api` in front of those tokens.
 
 HTTP and stdio auth are separate keys in the same file:
 
@@ -85,7 +87,7 @@ Porthole speaks MCP. Your editor or CLI agent is the MCP *client*. There are two
 | Transport | How the client reaches Porthole | Typical auth |
 | --- | --- | --- |
 | **Local stdio** | Client spawns `php artisan mcp:start porthole` in your app. Registered only when the Laravel environment is `local`. | Trust the machine, or disable auth for that local env |
-| **HTTP** | Client calls `https://your-app.test/mcp/porthole` | Passport bearer token, or Sanctum |
+| **HTTP** | Client calls `https://your-app.test/mcp/porthole` | Porthole OAuth, or a bearer token from `auth:api` / Sanctum |
 
 Pasting a stdio JSON block into an MCP settings file does **not** open a browser login. Cursor (and most other tools) start a local process and talk over stdin/stdout. Auth still runs inside each tool call.
 
@@ -97,7 +99,7 @@ Pasting a stdio JSON block into an MCP settings file does **not** open a browser
 4. The first tool call checks `$request->user()` and the gates.
 5. On stdio there is normally **no logged-in user**, so you get `Authentication is required to read Porthole data` until you either:
    - set `auth.stdio_required` to false in `config/porthole.php` for that local app (HTTP stays authenticated), or
-   - switch to **HTTP** and send a Passport or Sanctum credential.
+   - switch to **HTTP** and send a Porthole OAuth token, or a bearer token your `auth` middleware already accepts.
 
 ### App setup by transport
 
@@ -123,7 +125,7 @@ Confirm the handle:
 php artisan list mcp
 ```
 
-**HTTP + Passport (same team, fixed token)**
+**HTTP + bearer token (same team, fixed token)**
 
 ```php
 'auth' => [
@@ -139,21 +141,24 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 
 Sanctum apps use `auth:sanctum` and a Sanctum token in that same header.
 
-**HTTP + Passport OAuth (external / interactive clients)**
+**HTTP + Porthole OAuth (external / interactive clients)**
 
 ```php
 'auth' => [
-    'middleware' => ['auth:api'],
+    'middleware' => [],
 ],
 
 'oauth' => [
     'enabled' => true,
     'dynamic_registration' => false,
     'allow_non_local' => false,
+    'prefix' => 'porthole/oauth',
 ],
 ```
 
-The client discovers OAuth metadata, opens a browser to authorize, then sends the access token on later requests. That flow is handled by Passport + `laravel/mcp`, not by the stdio JSON snippet. Leave `dynamic_registration` false unless you intend to expose `POST /oauth/register`. Leave `allow_non_local` false outside local development. Enabling these routes adds `mcp:use` to the Passport issuer in that process.
+Publish and run the Porthole OAuth migrations, then let the client discover `/.well-known/oauth-protected-resource/mcp/porthole`. The metadata points at the Porthole issuer. The browser login uses the `web` guard and `viewPorthole`. The access token is stored in `porthole_oauth_tokens` and is accepted only by this package.
+
+Leave `dynamic_registration` false unless you intend to expose `POST /porthole/oauth/register`. That route writes Porthole clients, not Passport clients. Leave `allow_non_local` false outside local development. Do not set `prefix` to `oauth`.
 
 Do not commit real tokens. Prefer env vars / your tool’s secret inputs.
 

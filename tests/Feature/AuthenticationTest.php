@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Laravel\Mcp\Server\Middleware\ValidateMcpHeaders;
 use Laravel\Mcp\Server\Registrar;
+use Laravel\Passport\Passport;
 use Psr\Log\LoggerInterface;
 
 it('rejects a guest before the mcp handler runs', function () {
@@ -131,8 +132,6 @@ it('registers stdio only when the environment is local', function () {
 });
 
 it('does not register oauth routes outside local unless that deploy explicitly allows them', function () {
-    require_once __DIR__.'/../Fixtures/Passport.php';
-
     config([
         'porthole.enabled' => true,
         'porthole.oauth.enabled' => true,
@@ -150,12 +149,15 @@ it('does not register oauth routes outside local unless that deploy explicitly a
     app('router')->setRoutes(new RouteCollection);
     app()->getProvider(PortholeServiceProvider::class)->boot();
 
-    expect(app('router')->has('mcp.oauth.protected-resource'))->toBeFalse()
-        ->and(app('router')->has('mcp.oauth.register'))->toBeFalse();
+    expect(app('router')->has('mcp.oauth.protected-resource.nested'))->toBeFalse()
+        ->and(app('router')->has('porthole.oauth.register'))->toBeFalse()
+        ->and(app('router')->has('porthole.oauth.authorize'))->toBeFalse();
 });
 
-it('registers oauth discovery without dynamic registration unless that flag is on', function () {
+it('registers the porthole issuer without touching the application passport path', function () {
     require_once __DIR__.'/../Fixtures/Passport.php';
+
+    Passport::$scopes = ['mobile' => 'Mobile access'];
 
     config([
         'porthole.enabled' => true,
@@ -173,14 +175,18 @@ it('registers oauth discovery without dynamic registration unless that flag is o
         app('router')->getRoutes()->getRoutes(),
     );
 
-    expect($uris())->toContain('.well-known/oauth-protected-resource GET,HEAD')
-        ->not->toContain('oauth/register POST');
+    expect($uris())->toContain('porthole/oauth/authorize GET,HEAD')
+        ->and($uris())->toContain('.well-known/oauth-authorization-server/porthole/oauth GET,HEAD')
+        ->and($uris())->not->toContain('oauth/register POST')
+        ->and($uris())->not->toContain('oauth/authorize GET,HEAD')
+        ->and(Passport::$scopes)->toBe(['mobile' => 'Mobile access']);
 
     config(['porthole.oauth.dynamic_registration' => true]);
     app('router')->setRoutes(new RouteCollection);
     app()->getProvider(PortholeServiceProvider::class)->boot();
 
-    expect($uris())->toContain('oauth/register POST');
+    expect($uris())->toContain('porthole/oauth/register POST')
+        ->and($uris())->not->toContain('oauth/register POST');
 });
 
 it('does not register the http server when the package is disabled', function () {
