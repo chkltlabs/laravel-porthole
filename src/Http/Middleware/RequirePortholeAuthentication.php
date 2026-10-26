@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Chkltlabs\Porthole\Http\Middleware;
 
+use Chkltlabs\Porthole\Support\AuthFlags;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -16,7 +17,7 @@ class RequirePortholeAuthentication
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (config('porthole.auth.required', true) !== true) {
+        if (! AuthFlags::httpRequired()) {
             return $next($request);
         }
 

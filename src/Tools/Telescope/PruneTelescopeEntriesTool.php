@@ -40,14 +40,15 @@ class PruneTelescopeEntriesTool extends Tool
             return $denied;
         }
 
-        $maxHours = max(1, (int) config('porthole.prune_max_hours', 168));
+        $minHours = max(1, (int) config('porthole.prune_min_hours', 24));
+        $maxHours = max($minHours, (int) config('porthole.prune_max_hours', 168));
 
         $validated = $request->validate([
-            'hours' => ['nullable', 'integer', 'min:1', 'max:'.$maxHours],
+            'hours' => ['nullable', 'integer', 'min:'.$minHours, 'max:'.$maxHours],
             'keep_exceptions' => ['nullable', 'boolean'],
         ]);
 
-        $hours = (int) ($validated['hours'] ?? 24);
+        $hours = (int) ($validated['hours'] ?? max($minHours, min(24, $maxHours)));
         $pruned = app(TelescopeOperator::class)->prune($hours, (bool) ($validated['keep_exceptions'] ?? false));
 
         return Response::structured([

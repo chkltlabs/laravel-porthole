@@ -16,12 +16,25 @@ final class ArtisanHorizonOperator implements HorizonOperator
 
     public function pause(): void
     {
-        Artisan::call('horizon:pause');
+        $this->run('horizon:pause');
     }
 
     public function resume(): void
     {
-        Artisan::call('horizon:continue');
+        $this->run('horizon:continue');
+    }
+
+    private function run(string $command): void
+    {
+        $exitCode = Artisan::call($command);
+
+        if ($exitCode === 0) {
+            return;
+        }
+
+        $output = trim(Artisan::output());
+
+        throw new HorizonCommandFailed($output !== '' ? $output : $command.' failed.');
     }
 
     public function retryFailedJob(string $id): bool
