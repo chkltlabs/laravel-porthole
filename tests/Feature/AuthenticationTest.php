@@ -10,6 +10,7 @@ use Illuminate\Routing\RouteCollection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Laravel\Mcp\Server\Middleware\ValidateMcpHeaders;
+use Laravel\Mcp\Server\Registrar;
 use Psr\Log\LoggerInterface;
 
 it('rejects a guest before the mcp handler runs', function () {
@@ -79,6 +80,20 @@ it('does not register the http server when auth is required and middleware is em
         ->first(fn ($route): bool => $route->uri() === 'mcp/porthole');
 
     expect($route)->toBeNull();
+});
+
+it('registers stdio only when the environment is local', function () {
+    config(['porthole.enabled' => true, 'porthole.stdio.enabled' => true]);
+
+    app()->instance('env', 'production');
+    app()->getProvider(PortholeServiceProvider::class)->boot();
+
+    expect(app(Registrar::class)->getLocalServer('porthole'))->toBeNull();
+
+    app()->instance('env', 'local');
+    app()->getProvider(PortholeServiceProvider::class)->boot();
+
+    expect(app(Registrar::class)->getLocalServer('porthole'))->not->toBeNull();
 });
 
 it('does not register the http server when the package is disabled', function () {
