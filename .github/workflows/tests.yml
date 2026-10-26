@@ -84,16 +84,39 @@ jobs:
       - name: Run tests
         run: vendor/bin/pest --ci
 
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: pcov
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer update --prefer-stable --prefer-dist --no-interaction --no-progress
+
+      - name: Enforce minimum coverage
+        run: vendor/bin/pest --coverage --min=60
+
   ci:
     name: CI
-    needs: [quality, tests]
+    needs: [quality, tests, coverage]
     runs-on: ubuntu-latest
     if: always()
 
     steps:
       - name: Require green jobs
         run: |
-          if [ "${{ needs.quality.result }}" != "success" ] || [ "${{ needs.tests.result }}" != "success" ]; then
-            echo "quality=${{ needs.quality.result }} tests=${{ needs.tests.result }}"
+          if [ "${{ needs.quality.result }}" != "success" ] \
+            || [ "${{ needs.tests.result }}" != "success" ] \
+            || [ "${{ needs.coverage.result }}" != "success" ]; then
+            echo "quality=${{ needs.quality.result }} tests=${{ needs.tests.result }} coverage=${{ needs.coverage.result }}"
             exit 1
           fi

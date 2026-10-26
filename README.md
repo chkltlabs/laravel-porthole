@@ -118,4 +118,7 @@ Confirm the local command name with `php artisan list mcp`.
 ```bash
 composer install
 composer test
+composer test:coverage
 ```
+
+CI requires at least **60%** line coverage under `src/` (`pest --coverage --min=60`).
