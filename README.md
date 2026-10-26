@@ -1,5 +1,8 @@
 # Laravel Porthole
 
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/chkltlabs/laravel-porthole.svg?style=flat-square)](https://packagist.org/packages/chkltlabs/laravel-porthole)
+[![Total Downloads](https://img.shields.io/packagist/dt/chkltlabs/laravel-porthole.svg?style=flat-square)](https://packagist.org/packages/chkltlabs/laravel-porthole)
+
 Authenticated Model Context Protocol server for Laravel Horizon, Pulse, and Telescope. It is built on [laravel/mcp](https://github.com/laravel/mcp).
 
 Read tools are registered by default. Write tools stay unregistered until you opt in. Every HTTP call requires an authenticated user who passes the `viewPorthole` gate, and each tool also checks the gate for that package (`viewHorizon`, `viewPulse`, or `viewTelescope`). If a gate is missing, the call is denied.
@@ -15,13 +18,6 @@ Read tools are registered by default. Write tools stay unregistered until you op
 
 ```bash
 composer require chkltlabs/laravel-porthole
-```
-
-Until the package is on Packagist, require it from Git:
-
-```bash
-composer config repositories.porthole vcs https://github.com/chkltlabs/laravel-porthole.git
-composer require chkltlabs/laravel-porthole:dev-main
 ```
 
 Publish the configuration when you want to commit overrides:
