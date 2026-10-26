@@ -52,7 +52,7 @@ An institution admin is not this role. `viewPorthole` is a staff gate for readin
 
 Horizon, Pulse, and Telescope still apply their own gates. A caller needs both `viewPorthole` and the source gate.
 
-Point HTTP auth at the guard your MCP clients already use. Porthole does **not** register `POST /mcp/porthole` when `auth.middleware` is empty, including when `auth.http_required` is false.
+Point HTTP auth at the guard your MCP clients already use. With the Porthole OAuth issuer off, Porthole does **not** register `POST /mcp/porthole` when `auth.middleware` is empty, including when `auth.http_required` is false. With the issuer on, an empty list is valid because the package authenticates its own access tokens.
 
 ```php
 'auth' => [
@@ -65,9 +65,11 @@ Point HTTP auth at the guard your MCP clients already use. Porthole does **not**
 
 Sanctum apps can use `auth:sanctum` instead. Set `auth.throttle` to an empty string to disable the limiter.
 
-OAuth stays off until `oauth.enabled` is true and the app is running in `local` (or `oauth.allow_non_local` is true). Porthole then serves its own authorization server at `/porthole/oauth`. That issuer has its own client table and the `mcp:use` scope. It does not register Passport routes, call `Passport::tokensCan()`, or change `ignoreRoutes()` and `$user->createToken()`. A token from this flow is not an application API token. Point Cursor at the Porthole issuer only.
+OAuth stays off until `oauth.enabled` is true and the app is running in `local` (or `oauth.allow_non_local` is true). Porthole then serves its own authorization server at `/porthole/oauth`. That issuer has its own client table and the `mcp:use` scope. It does not register Passport routes, call `Passport::tokensCan()`, or change `ignoreRoutes()` and `$user->createToken()`. A token from this flow is not an application API token.
 
-Dynamic client registration stays off until `oauth.dynamic_registration` is true. With it off, create a public client with `php artisan porthole:oauth-client`. Run `php artisan vendor:publish --tag=porthole-migrations` and migrate before enabling OAuth. When OAuth is on, `auth.middleware` can stay empty: the package authenticates its own access tokens. Do not put `auth:api` in front of those tokens.
+The MCP client URL stays `https://your-app.test/mcp/porthole`. The client discovers `/porthole/oauth` from the `401` response. Do not put the issuer in the client's `url` field, and do not send it to the application's Passport server.
+
+Dynamic client registration stays off until `oauth.dynamic_registration` is true. With it off, create a public client with `php artisan porthole:oauth-client`. Enable OAuth, then run `php artisan migrate`. Porthole loads its OAuth migrations in that mode. Do not also publish `porthole-migrations` into `database/migrations`, or migrate runs the same tables twice. When OAuth is on, `auth.middleware` can stay empty. Do not put `auth:api` in front of these tokens.
 
 HTTP and stdio auth are separate keys in the same file:
 
@@ -156,7 +158,7 @@ Sanctum apps use `auth:sanctum` and a Sanctum token in that same header.
 ],
 ```
 
-Publish and run the Porthole OAuth migrations, then let the client discover `/.well-known/oauth-protected-resource/mcp/porthole`. The metadata points at the Porthole issuer. The browser login uses the `web` guard and `viewPorthole`. The access token is stored in `porthole_oauth_tokens` and is accepted only by this package.
+Enable OAuth and run `php artisan migrate`. The client calls `https://your-app.test/mcp/porthole` with no bearer header. A `401` points it at `/.well-known/oauth-protected-resource/mcp/porthole`, and that document names the `/porthole/oauth` issuer. The browser login uses the `web` guard and `viewPorthole`. The access token is stored in `porthole_oauth_tokens` and is accepted only by this package.
 
 Leave `dynamic_registration` false unless you intend to expose `POST /porthole/oauth/register`. That route writes Porthole clients, not Passport clients. Leave `allow_non_local` false outside local development. Do not set `prefix` to `oauth`.
 
@@ -174,7 +176,7 @@ Do not commit real tokens. Prefer env vars / your tool’s secret inputs.
 }
 ```
 
-**HTTP**:
+**HTTP with a fixed bearer token** (`auth:api` or Sanctum):
 
 ```json
 {
@@ -185,9 +187,19 @@ Do not commit real tokens. Prefer env vars / your tool’s secret inputs.
 }
 ```
 
+**HTTP with Porthole OAuth.** Omit the bearer header so the client can discover the issuer. The per-client examples below that include `Authorization` are the fixed-token path.
+
+```json
+{
+  "url": "https://your-app.test/mcp/porthole"
+}
+```
+
 Replace the host with your real app URL. Some clients also need an explicit transport `type` (see below).
 
 ### Client examples
+
+Bearer headers in these examples are the fixed-token path (`auth:api` or Sanctum). For Porthole OAuth, keep the same URL and omit `Authorization`.
 
 #### Cursor
 
@@ -459,7 +471,7 @@ Open the MCP settings UI and paste a standard `mcpServers` JSON block (stdio or 
 | `mcp:start porthole` unknown / server missing | `stdio.enabled` is false, or the app environment is not `local` |
 | `artisan` not found | Wrong `cwd` / missing absolute path |
 | `Authentication is required to read Porthole data` | Stdio with no user; set `auth.stdio_required` to false locally, or switch to HTTP + token |
-| HTTP 404 on `/mcp/porthole` | `auth.http_required` is true and `auth.middleware` is empty, so the route was not registered |
+| HTTP 404 on `/mcp/porthole` | The Porthole issuer is off and `auth.middleware` is empty, so the route was not registered |
 | `You are not authorized to use Porthole` | User is authenticated but `viewPorthole` is missing or fails |
 | VS Code ignores a pasted Cursor file | Workspace file must use `"servers"`, not `"mcpServers"` |
 | Claude Code skips a remote entry | Add `"type": "http"` next to `url` |
