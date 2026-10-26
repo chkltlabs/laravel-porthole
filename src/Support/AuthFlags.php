@@ -7,9 +7,9 @@ namespace Chkltlabs\Porthole\Support;
 final class AuthFlags
 {
     /**
-     * A transport-specific env value wins. When it is absent, the legacy
-     * PORTHOLE_AUTH_REQUIRED value applies to that transport. Unset both
-     * keeps authentication required.
+     * A transport-specific config value wins. When it is absent, the legacy
+     * auth.required value applies to that transport. Unset both keeps
+     * authentication required.
      */
     public static function resolve(mixed $specific, mixed $legacy): bool
     {

@@ -21,11 +21,13 @@ Read tools are registered by default. Write tools stay unregistered until you op
 composer require chkltlabs/laravel-porthole
 ```
 
-Optional config publish:
+The next Artisan command copies the example to `config/porthole.php` when that file is missing. Edit that file. Republish it with:
 
 ```bash
 php artisan vendor:publish --tag=porthole-config
 ```
+
+`vendor:publish` leaves an existing file in place unless you pass `--force`.
 
 The HTTP endpoint is `POST /mcp/porthole`.
 
@@ -44,24 +46,31 @@ Gate::define('viewPorthole', function (User $user): bool {
 
 Horizon, Pulse, and Telescope still apply their own gates. A caller needs both `viewPorthole` and the source gate.
 
-Point HTTP auth at the guard your MCP clients already use. When HTTP auth is required (the default) and this is empty, Porthole does **not** register `POST /mcp/porthole`.
+Point HTTP auth at the guard your MCP clients already use. When `auth.http_required` is true (the default) and `auth.middleware` is empty, Porthole does **not** register `POST /mcp/porthole`.
 
-```env
-PORTHOLE_AUTH_MIDDLEWARE=auth:sanctum
+```php
+'auth' => [
+    'middleware' => [
+        'auth:sanctum',
+    ],
+    'throttle' => '60,1',
+],
 ```
 
-Passport apps should use `auth:api`. The HTTP route is also throttled (`PORTHOLE_HTTP_THROTTLE`, default `60,1`). Set that empty to disable the limiter.
+Passport apps should use `auth:api`. Set `auth.throttle` to an empty string to disable the limiter.
 
-For OAuth discovery and dynamic client registration, set `PORTHOLE_OAUTH_ENABLED=true`. Leave that off until you intend to expose the public registration route.
+For OAuth discovery and dynamic client registration, set `oauth.enabled` to true. Leave that false until you intend to expose the public registration route.
 
-HTTP and stdio auth are separate:
+HTTP and stdio auth are separate keys in the same file:
 
-```env
-PORTHOLE_HTTP_AUTH_REQUIRED=true
-PORTHOLE_STDIO_AUTH_REQUIRED=false
+```php
+'auth' => [
+    'http_required' => true,
+    'stdio_required' => false,
+],
 ```
 
-`PORTHOLE_STDIO_AUTH_REQUIRED=false` trusts the local process and skips `viewPorthole` and the source gates for stdio tool calls only. It does not open HTTP. `PORTHOLE_AUTH_REQUIRED` is a legacy switch that applies only to a transport whose specific flag is unset. Unrecognized values keep authentication required.
+`stdio_required` set to false trusts the local process and skips `viewPorthole` and the source gates for stdio tool calls only. It does not open HTTP. `auth.required` is a legacy fallback used only when a transport flag is missing from an older published file.
 
 ## Connect an AI coding agent
 
@@ -81,19 +90,23 @@ Pasting a stdio JSON block into an MCP settings file does **not** open a browser
 3. The client lists tools. Read tools appear when Horizon, Pulse, and/or Telescope are installed.
 4. The first tool call checks `$request->user()` and the gates.
 5. On stdio there is normally **no logged-in user**, so you get `Authentication is required to read Porthole data` until you either:
-   - set `PORTHOLE_STDIO_AUTH_REQUIRED=false` for that local environment (HTTP stays authenticated), or
+   - set `auth.stdio_required` to false in `config/porthole.php` for that local app (HTTP stays authenticated), or
    - switch to **HTTP** and send a Sanctum/Passport credential.
 
 ### App setup by transport
 
 **Local stdio (laptop / same machine as the app)**
 
-```env
-PORTHOLE_STDIO_ENABLED=true
-PORTHOLE_HTTP_AUTH_REQUIRED=true
-PORTHOLE_AUTH_MIDDLEWARE=auth:sanctum
-# Optional for a private local process only. Does not disable HTTP auth.
-# PORTHOLE_STDIO_AUTH_REQUIRED=false
+```php
+'auth' => [
+    'http_required' => true,
+    'stdio_required' => true, // false trusts this machine only
+    'middleware' => ['auth:sanctum'],
+],
+
+'stdio' => [
+    'enabled' => true,
+],
 ```
 
 Confirm the handle:
@@ -104,8 +117,10 @@ php artisan list mcp
 
 **HTTP + Sanctum (same team, fixed token)**
 
-```env
-PORTHOLE_AUTH_MIDDLEWARE=auth:sanctum
+```php
+'auth' => [
+    'middleware' => ['auth:sanctum'],
+],
 ```
 
 Issue a personal access token for a user that passes `viewPorthole` (and the source gates). Clients send:
@@ -116,9 +131,14 @@ Authorization: Bearer YOUR_SANCTUM_TOKEN
 
 **HTTP + Passport OAuth (external / interactive clients)**
 
-```env
-PORTHOLE_AUTH_MIDDLEWARE=auth:api
-PORTHOLE_OAUTH_ENABLED=true
+```php
+'auth' => [
+    'middleware' => ['auth:api'],
+],
+
+'oauth' => [
+    'enabled' => true,
+],
 ```
 
 The client discovers OAuth metadata, registers if needed, opens a browser to authorize, then sends the access token on later requests. That flow is handled by Passport + `laravel/mcp`, not by the stdio JSON snippet.
@@ -419,10 +439,10 @@ Open the MCP settings UI and paste a standard `mcpServers` JSON block (stdio or 
 
 | Symptom | Likely cause |
 | --- | --- |
-| `mcp:start porthole` unknown / server missing | `PORTHOLE_STDIO_ENABLED` is still false |
+| `mcp:start porthole` unknown / server missing | `stdio.enabled` is still false in `config/porthole.php` |
 | `artisan` not found | Wrong `cwd` / missing absolute path |
-| `Authentication is required to read Porthole data` | Stdio with no user; set `PORTHOLE_STDIO_AUTH_REQUIRED=false` locally, or switch to HTTP + token |
-| HTTP 404 on `/mcp/porthole` | HTTP auth is required and `PORTHOLE_AUTH_MIDDLEWARE` is empty, so the route was not registered |
+| `Authentication is required to read Porthole data` | Stdio with no user; set `auth.stdio_required` to false locally, or switch to HTTP + token |
+| HTTP 404 on `/mcp/porthole` | `auth.http_required` is true and `auth.middleware` is empty, so the route was not registered |
 | `You are not authorized to use Porthole` | User is authenticated but `viewPorthole` is missing or fails |
 | VS Code ignores a pasted Cursor file | Workspace file must use `"servers"`, not `"mcpServers"` |
 | Claude Code skips a remote entry | Add `"type": "http"` next to `url` |
@@ -454,14 +474,14 @@ Horizon job payloads are reduced to the display name. Telescope query bindings, 
 
 These tools are absent from `tools/list` until the matching flag is true. Calling one while the flag is off returns an error and does not touch Horizon or Telescope.
 
-```env
-PORTHOLE_WRITES_ENABLED=true
-PORTHOLE_DESTRUCTIVE_ENABLED=true
+```php
+'writes_enabled' => true,
+'destructive_enabled' => true,
 ```
 
 `writes_enabled` registers `horizon-pause`, `horizon-continue`, and `horizon-retry-failed-job`.
 
-`destructive_enabled` registers `telescope-prune`. Retention hours must fall between `PORTHOLE_PRUNE_MIN_HOURS` (default 24) and `PORTHOLE_PRUNE_MAX_HOURS` (default 168).
+`destructive_enabled` registers `telescope-prune`. Retention hours must fall between `prune_min_hours` (default 24) and `prune_max_hours` (default 168).
 
 ## Tests
 
