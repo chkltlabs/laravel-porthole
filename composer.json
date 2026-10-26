@@ -47,7 +47,8 @@
     },
     "scripts": {
         "format": "pint",
-        "test": "pest"
+        "test": "pest",
+        "test:coverage": "pest --coverage --min=60"
     },
     "config": {
         "sort-packages": true,
