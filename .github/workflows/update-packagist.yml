@@ -1,0 +1,31 @@
+name: update-packagist
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    name: Notify Packagist
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Packagist update
+        env:
+          PACKAGIST_USERNAME: ${{ secrets.PACKAGIST_USERNAME }}
+          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+        run: |
+          if [ -z "${PACKAGIST_USERNAME}" ] || [ -z "${PACKAGIST_TOKEN}" ]; then
+            echo "PACKAGIST_USERNAME / PACKAGIST_TOKEN not set."
+            echo "Relying on Packagist GitHub Sync, or add those secrets for API updates."
+            exit 0
+          fi
+
+          curl --fail-with-body -X POST \
+            "https://packagist.org/api/update-package?username=${PACKAGIST_USERNAME}&apiToken=${PACKAGIST_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"repository":{"url":"https://github.com/chkltlabs/laravel-porthole"}}'

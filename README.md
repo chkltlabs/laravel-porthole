@@ -2,6 +2,7 @@
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/chkltlabs/laravel-porthole.svg?style=flat-square)](https://packagist.org/packages/chkltlabs/laravel-porthole)
 [![Total Downloads](https://img.shields.io/packagist/dt/chkltlabs/laravel-porthole.svg?style=flat-square)](https://packagist.org/packages/chkltlabs/laravel-porthole)
+[![Tests](https://img.shields.io/github/actions/workflow/status/chkltlabs/laravel-porthole/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/chkltlabs/laravel-porthole/actions/workflows/tests.yml)
 
 Authenticated Model Context Protocol server for Laravel Horizon, Pulse, and Telescope. It is built on [laravel/mcp](https://github.com/laravel/mcp).
 
