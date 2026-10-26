@@ -26,9 +26,11 @@ use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Version;
+use Laravel\Mcp\Server\Contracts\Transport;
+use Laravel\Mcp\Server\Transport\StdioTransport;
 
 #[Name('Laravel Porthole')]
-#[Version('0.1.0')]
+#[Version(self::VERSION)]
 #[Instructions(<<<'MARKDOWN'
     Read Horizon, Pulse, and Telescope through authenticated tools.
     Tools are read-only unless the host application enables writes.
@@ -37,6 +39,18 @@ use Laravel\Mcp\Server\Attributes\Version;
     MARKDOWN)]
 class PortholeServer extends Server
 {
+    public const VERSION = '0.3.0';
+
+    public function __construct(Transport $transport)
+    {
+        parent::__construct($transport);
+
+        app()->instance(
+            'porthole.transport',
+            $transport instanceof StdioTransport ? 'stdio' : 'http',
+        );
+    }
+
     /**
      * @var array<int, class-string>
      */

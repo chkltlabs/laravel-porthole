@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+use Chkltlabs\Porthole\Support\EnvBoolean;
+
+$authMiddleware = env('PORTHOLE_AUTH_MIDDLEWARE');
+
 return [
 
     /*
@@ -9,9 +13,10 @@ return [
     | Server
     |--------------------------------------------------------------------------
     |
-    | The HTTP server is registered when enabled. Publish this file and edit
-    | it in your application. HTTP authentication stays required until
-    | http_required is false.
+    | The HTTP server is registered when enabled and auth.middleware is set.
+    | Publish this file and edit it in your application. Environment
+    | variables below override the dangerous keys per deploy. An
+    | unrecognized value keeps the secure default.
     |
     */
 
@@ -26,20 +31,27 @@ return [
         */
         'required' => true,
 
-        'http_required' => true,
+        'http_required' => EnvBoolean::parse(env('PORTHOLE_HTTP_AUTH_REQUIRED', true), true),
 
-        'stdio_required' => true,
+        'stdio_required' => EnvBoolean::parse(env('PORTHOLE_STDIO_AUTH_REQUIRED', true), true),
 
         /*
         | Middleware that authenticates the caller before the package gate runs.
-        | Use "auth:sanctum" or "auth:api" for bearer tokens. When HTTP auth is
-        | required and this list is empty, the HTTP server is not registered.
-        | The package appends its own middleware, which returns 401 or 403 and
-        | does not redirect.
+        | Use "auth:api" or "auth:sanctum" for bearer tokens. When this list is
+        | empty, the HTTP server is not registered. The package appends its own
+        | middleware, which returns 401 or 403 and does not redirect.
+        |
+        | PORTHOLE_AUTH_MIDDLEWARE replaces this list when it is set. Separate
+        | middleware names with commas.
         */
-        'middleware' => [
-            // 'auth:sanctum',
-        ],
+        'middleware' => is_string($authMiddleware) && trim($authMiddleware) !== ''
+            ? array_values(array_filter(array_map(
+                static fn (string $middleware): string => trim($middleware),
+                explode(',', $authMiddleware),
+            )))
+            : [
+                // 'auth:api',
+            ],
 
         'guard' => null,
 
@@ -57,18 +69,35 @@ return [
     |
     | Read tools are the only tools registered unless these flags are enabled.
     | "writes_enabled" allows pausing Horizon, resuming it, and retrying a
-    | failed job. "destructive_enabled" allows Telescope prune, and it is a
-    | separate opt-in so queue control does not also delete debug history.
+    | failed job. Pause, continue, and retry also require a passing
+    | mutateHorizon gate. "destructive_enabled" allows Telescope prune, and
+    | it is a separate opt-in so queue control does not also delete debug
+    | history. Outside the local environment, prune retention cannot drop
+    | below 24 hours.
     |
     */
 
-    'writes_enabled' => false,
+    'writes_enabled' => EnvBoolean::parse(env('PORTHOLE_WRITES_ENABLED', false), false),
 
-    'destructive_enabled' => false,
+    'destructive_enabled' => EnvBoolean::parse(env('PORTHOLE_DESTRUCTIVE_ENABLED', false), false),
+
+    'writes' => [
+        /*
+        | Display names of failed jobs that horizon-retry-failed-job may
+        | dispatch. An empty list refuses every retry. PORTHOLE_RETRY_ALLOWLIST
+        | is a comma-separated list of those display names.
+        */
+        'retry_allowlist' => array_values(array_filter(array_map(
+            static fn (string $name): string => trim($name),
+            explode(',', (string) env('PORTHOLE_RETRY_ALLOWLIST', '')),
+        ))),
+    ],
 
     'prune_min_hours' => 24,
 
     'prune_max_hours' => 168,
+
+    'prune_allow_short_retention' => EnvBoolean::parse(env('PORTHOLE_PRUNE_ALLOW_SHORT_RETENTION', false), false),
 
     /*
     |--------------------------------------------------------------------------
@@ -79,8 +108,10 @@ return [
     | and it registers only when the application environment is "local".
     | Tool calls still require an authenticated, authorized user unless
     | auth.stdio_required is false. That flag does not affect HTTP. OAuth
-    | route registration stays off until you enable it, because dynamic
-    | client registration is a public endpoint.
+    | routes register only when oauth.enabled is true, Passport is installed,
+    | and the environment is local or oauth.allow_non_local is true. Dynamic
+    | client registration stays off unless oauth.dynamic_registration is true.
+    | Enabling OAuth adds the mcp:use scope to the Passport issuer.
     |
     */
 
@@ -90,7 +121,9 @@ return [
     ],
 
     'oauth' => [
-        'enabled' => false,
+        'enabled' => EnvBoolean::parse(env('PORTHOLE_OAUTH_ENABLED', false), false),
+        'dynamic_registration' => EnvBoolean::parse(env('PORTHOLE_OAUTH_DYNAMIC_REGISTRATION', false), false),
+        'allow_non_local' => EnvBoolean::parse(env('PORTHOLE_OAUTH_ALLOW_NON_LOCAL', false), false),
     ],
 
     'limits' => [

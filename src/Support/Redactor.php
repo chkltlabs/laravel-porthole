@@ -18,7 +18,7 @@ final class Redactor
         }
 
         if (is_string($value)) {
-            return $this->truncate($value);
+            return $this->scrub($value);
         }
 
         if (! is_array($value)) {
@@ -44,8 +44,29 @@ final class Redactor
     {
         $masked = preg_replace("/'(?:\\\\'|[^'])*'/", '?', $sql) ?? $sql;
         $masked = preg_replace('/"(?:\\\\"|[^"])*"/', '?', $masked) ?? $masked;
+        $masked = preg_replace('/\b\d+(?:\.\d+)?\b/', '?', $masked) ?? $masked;
 
-        return $this->truncate($masked);
+        return $this->scrub($masked);
+    }
+
+    public function scrub(string $value): string
+    {
+        $stripped = preg_replace_callback(
+            '/\bhttps?:\/\/[^\s]+/i',
+            static function (array $match): string {
+                $url = $match[0];
+                $query = strpos($url, '?');
+
+                if ($query === false) {
+                    return $url;
+                }
+
+                return substr($url, 0, $query);
+            },
+            $value,
+        ) ?? $value;
+
+        return $this->truncate($stripped);
     }
 
     public function truncate(string $value): string
@@ -76,6 +97,10 @@ final class Redactor
             'card_number',
             'cvv',
             'ssn',
+            'email',
+            'account_number',
+            'routing_number',
+            'private_key',
             'php_auth_pw',
             'x_csrf_token',
             'x_xsrf_token',

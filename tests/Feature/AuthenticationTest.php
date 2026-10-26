@@ -60,6 +60,40 @@ it('keeps http authentication when only stdio auth is disabled', function () {
     $this->postJson('/mcp/porthole', [])->assertUnauthorized();
 });
 
+it('keeps http authentication when the stored flag is the string true', function () {
+    config([
+        'porthole.auth.http_required' => 'true',
+        'porthole.auth.middleware' => [ValidatePostSize::class],
+    ]);
+
+    app('router')->setRoutes(new RouteCollection);
+    app()->getProvider(PortholeServiceProvider::class)->boot();
+
+    $this->postJson('/mcp/porthole', [])->assertUnauthorized();
+});
+
+it('does not register the http server when middleware is empty', function () {
+    config([
+        'porthole.enabled' => true,
+        'porthole.auth.http_required' => false,
+        'porthole.auth.middleware' => [],
+    ]);
+
+    $logger = Mockery::mock(LoggerInterface::class);
+    $logger->shouldReceive('warning')->once()->withArgs(
+        fn (string $message): bool => str_contains($message, 'porthole.auth.middleware'),
+    );
+    Log::swap($logger);
+
+    app('router')->setRoutes(new RouteCollection);
+    app()->getProvider(PortholeServiceProvider::class)->boot();
+
+    $route = collect(app('router')->getRoutes()->getRoutes())
+        ->first(fn ($route): bool => $route->uri() === 'mcp/porthole');
+
+    expect($route)->toBeNull();
+});
+
 it('does not register the http server when auth is required and middleware is empty', function () {
     config([
         'porthole.enabled' => true,
@@ -94,6 +128,59 @@ it('registers stdio only when the environment is local', function () {
     app()->getProvider(PortholeServiceProvider::class)->boot();
 
     expect(app(Registrar::class)->getLocalServer('porthole'))->not->toBeNull();
+});
+
+it('does not register oauth routes outside local unless that deploy explicitly allows them', function () {
+    require_once __DIR__.'/../Fixtures/Passport.php';
+
+    config([
+        'porthole.enabled' => true,
+        'porthole.oauth.enabled' => true,
+        'porthole.oauth.dynamic_registration' => true,
+        'porthole.oauth.allow_non_local' => false,
+    ]);
+
+    $logger = Mockery::mock(LoggerInterface::class);
+    $logger->shouldReceive('warning')->once()->withArgs(
+        fn (string $message): bool => str_contains($message, 'allow_non_local'),
+    );
+    Log::swap($logger);
+
+    app()->instance('env', 'production');
+    app('router')->setRoutes(new RouteCollection);
+    app()->getProvider(PortholeServiceProvider::class)->boot();
+
+    expect(app('router')->has('mcp.oauth.protected-resource'))->toBeFalse()
+        ->and(app('router')->has('mcp.oauth.register'))->toBeFalse();
+});
+
+it('registers oauth discovery without dynamic registration unless that flag is on', function () {
+    require_once __DIR__.'/../Fixtures/Passport.php';
+
+    config([
+        'porthole.enabled' => true,
+        'porthole.oauth.enabled' => true,
+        'porthole.oauth.dynamic_registration' => false,
+        'porthole.oauth.allow_non_local' => true,
+    ]);
+
+    app()->instance('env', 'production');
+    app('router')->setRoutes(new RouteCollection);
+    app()->getProvider(PortholeServiceProvider::class)->boot();
+
+    $uris = fn (): array => array_map(
+        fn ($route): string => $route->uri().' '.implode(',', $route->methods()),
+        app('router')->getRoutes()->getRoutes(),
+    );
+
+    expect($uris())->toContain('.well-known/oauth-protected-resource GET,HEAD')
+        ->not->toContain('oauth/register POST');
+
+    config(['porthole.oauth.dynamic_registration' => true]);
+    app('router')->setRoutes(new RouteCollection);
+    app()->getProvider(PortholeServiceProvider::class)->boot();
+
+    expect($uris())->toContain('oauth/register POST');
 });
 
 it('does not register the http server when the package is disabled', function () {

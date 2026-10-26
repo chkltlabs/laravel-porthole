@@ -34,6 +34,29 @@ trait AuthorizesPorthole
         return null;
     }
 
+    protected function mutationDenied(Request $request, string $sourceGate, string $mutateGate): ?Response
+    {
+        if ($denied = $this->denied($request, $sourceGate)) {
+            return $denied;
+        }
+
+        if (! $this->authenticationRequired()) {
+            return null;
+        }
+
+        $user = $request->user($this->guard());
+
+        if ($user === null) {
+            return Response::error('Authentication is required to read Porthole data.');
+        }
+
+        if (! Gate::forUser($user)->has($mutateGate) || ! Gate::forUser($user)->check($mutateGate)) {
+            return Response::error('You are not authorized to change this Porthole source.');
+        }
+
+        return null;
+    }
+
     protected function writesDenied(): ?Response
     {
         if (config('porthole.writes_enabled') === true) {
@@ -54,24 +77,11 @@ trait AuthorizesPorthole
 
     private function authenticationRequired(): bool
     {
-        return $this->usesHttpTransport()
-            ? AuthFlags::httpRequired()
-            : AuthFlags::stdioRequired();
-    }
-
-    private function usesHttpTransport(): bool
-    {
-        if (! app()->bound('request')) {
-            return false;
+        if (app()->bound('porthole.transport') && app('porthole.transport') === 'stdio') {
+            return AuthFlags::stdioRequired();
         }
 
-        $route = request()->route();
-
-        if ($route === null) {
-            return false;
-        }
-
-        return trim((string) $route->uri(), '/') === trim((string) config('porthole.path', 'mcp/porthole'), '/');
+        return AuthFlags::httpRequired();
     }
 
     private function guard(): ?string
