@@ -23,7 +23,6 @@
     },
     "suggest": {
         "laravel/horizon": "Required to register the Horizon tools.",
-        "laravel/passport": "OAuth 2.1 authentication for remote MCP clients.",
         "laravel/pulse": "Required to register the Pulse tools.",
         "laravel/sanctum": "Bearer-token authentication for the HTTP MCP server.",
         "laravel/telescope": "Required to register the Telescope tools."
