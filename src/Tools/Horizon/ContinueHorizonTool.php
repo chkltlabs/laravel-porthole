@@ -34,7 +34,7 @@ class ContinueHorizonTool extends Tool
 
     public function handle(Request $request): Response|ResponseFactory
     {
-        if ($denied = $this->denied($request, 'viewHorizon')) {
+        if ($denied = $this->mutationDenied($request, 'viewHorizon', 'mutateHorizon')) {
             return $denied;
         }
 

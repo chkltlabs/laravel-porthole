@@ -40,9 +40,14 @@ final class ArtisanHorizonOperator implements HorizonOperator
     public function retryFailedJob(string $id): bool
     {
         $repository = $this->app->make(JobRepository::class);
+        $job = $repository->findFailed($id);
 
-        if ($repository->findFailed($id) === null) {
+        if ($job === null) {
             return false;
+        }
+
+        if (! $this->retryAllowed($this->displayName($job))) {
+            throw new HorizonCommandFailed('This job is not on the retry allowlist.');
         }
 
         $this->app->make(Dispatcher::class)->dispatch(
@@ -50,5 +55,40 @@ final class ArtisanHorizonOperator implements HorizonOperator
         );
 
         return true;
+    }
+
+    private function displayName(object $job): ?string
+    {
+        $payload = $job->payload ?? null;
+
+        if (is_string($payload)) {
+            $decoded = json_decode($payload, true);
+            $payload = is_array($decoded) ? $decoded : null;
+        }
+
+        if (is_array($payload) && isset($payload['displayName']) && is_string($payload['displayName']) && $payload['displayName'] !== '') {
+            return $payload['displayName'];
+        }
+
+        if (isset($job->name) && is_string($job->name) && $job->name !== '') {
+            return $job->name;
+        }
+
+        return null;
+    }
+
+    private function retryAllowed(?string $name): bool
+    {
+        if ($name === null || $name === '') {
+            return false;
+        }
+
+        $allowlist = config('porthole.writes.retry_allowlist', []);
+
+        if (! is_array($allowlist)) {
+            return false;
+        }
+
+        return in_array($name, $allowlist, true);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Chkltlabs\Porthole\Tools\Horizon;
 
+use Chkltlabs\Porthole\Horizon\HorizonCommandFailed;
 use Chkltlabs\Porthole\Horizon\HorizonOperator;
 use Chkltlabs\Porthole\Support\InstalledPackage;
 use Chkltlabs\Porthole\Tools\Concerns\AuthorizesPorthole;
@@ -32,7 +33,7 @@ class RetryFailedHorizonJobTool extends Tool
 
     public function handle(Request $request): Response|ResponseFactory
     {
-        if ($denied = $this->denied($request, 'viewHorizon')) {
+        if ($denied = $this->mutationDenied($request, 'viewHorizon', 'mutateHorizon')) {
             return $denied;
         }
 
@@ -44,7 +45,11 @@ class RetryFailedHorizonJobTool extends Tool
             'id' => ['required', 'string', 'max:100'],
         ]);
 
-        $retried = app(HorizonOperator::class)->retryFailedJob($validated['id']);
+        try {
+            $retried = app(HorizonOperator::class)->retryFailedJob($validated['id']);
+        } catch (HorizonCommandFailed $exception) {
+            return Response::error($exception->getMessage());
+        }
 
         if (! $retried) {
             return Response::error('Failed job was not found.');
