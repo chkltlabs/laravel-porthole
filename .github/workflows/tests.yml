@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -57,7 +57,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -66,8 +66,15 @@ jobs:
           coverage: none
           tools: composer:v2
 
+      # Laravel 11 is EOL and every release is advisory-blocked by Composer.
+      # Keep testing it for consumers still on 11; this only affects CI installs.
+      - name: Allow Laravel 11 resolution
+        if: matrix.laravel == '11.*'
+        run: composer config policy.advisories.block false
+
       - name: Install dependencies
         run: |
+          rm -f composer.lock
           composer require \
             "laravel/framework:${{ matrix.laravel }}" \
             "orchestra/testbench:${{ matrix.testbench }}" \
