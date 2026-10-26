@@ -83,3 +83,17 @@ jobs:
 
       - name: Run tests
         run: vendor/bin/pest --ci
+
+  ci:
+    name: CI
+    needs: [quality, tests]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Require green jobs
+        run: |
+          if [ "${{ needs.quality.result }}" != "success" ] || [ "${{ needs.tests.result }}" != "success" ]; then
+            echo "quality=${{ needs.quality.result }} tests=${{ needs.tests.result }}"
+            exit 1
+          fi
