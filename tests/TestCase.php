@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Tests;
+namespace Chkltlabs\Porthole\Tests;
 
-use Chkltlabs\ObservabilityMcp\ObservabilityMcpServiceProvider;
+use Chkltlabs\Porthole\PortholeServiceProvider;
 use Laravel\Mcp\Server\McpServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
@@ -14,7 +14,7 @@ abstract class TestCase extends Orchestra
     {
         return [
             McpServiceProvider::class,
-            ObservabilityMcpServiceProvider::class,
+            PortholeServiceProvider::class,
         ];
     }
 

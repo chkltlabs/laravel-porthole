@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Chkltlabs\ObservabilityMcp\Support\EnvBoolean;
-use Chkltlabs\ObservabilityMcp\Support\Redactor;
+use Chkltlabs\Porthole\Support\EnvBoolean;
+use Chkltlabs\Porthole\Support\Redactor;
 
 it('keeps the secure default when a boolean env value is unrecognized', function () {
     expect(EnvBoolean::parse('false', true))->toBeFalse()

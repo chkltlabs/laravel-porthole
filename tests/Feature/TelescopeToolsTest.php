@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-use Chkltlabs\ObservabilityMcp\ObservabilityServer;
-use Chkltlabs\ObservabilityMcp\Telescope\TelescopeOperator;
-use Chkltlabs\ObservabilityMcp\Tests\ObservabilityUser;
-use Chkltlabs\ObservabilityMcp\Tools\Telescope\ListTelescopeEntriesTool;
-use Chkltlabs\ObservabilityMcp\Tools\Telescope\PruneTelescopeEntriesTool;
-use Chkltlabs\ObservabilityMcp\Tools\Telescope\ShowTelescopeEntryTool;
+use Chkltlabs\Porthole\PortholeServer;
+use Chkltlabs\Porthole\Telescope\TelescopeOperator;
+use Chkltlabs\Porthole\Tests\PortholeUser;
+use Chkltlabs\Porthole\Tools\Telescope\ListTelescopeEntriesTool;
+use Chkltlabs\Porthole\Tools\Telescope\PruneTelescopeEntriesTool;
+use Chkltlabs\Porthole\Tools\Telescope\ShowTelescopeEntryTool;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Telescope\Contracts\EntriesRepository;
 use Laravel\Telescope\EntryResult;
 
 beforeEach(function () {
-    Gate::define('viewObservabilityMcp', fn (): bool => true);
+    Gate::define('viewPorthole', fn (): bool => true);
     Gate::define('viewTelescope', fn (): bool => true);
 
     $entry = new EntryResult(
@@ -44,7 +44,7 @@ beforeEach(function () {
 });
 
 it('lists a query summary without bindings', function () {
-    $response = ObservabilityServer::actingAs(new ObservabilityUser)
+    $response = PortholeServer::actingAs(new PortholeUser)
         ->tool(ListTelescopeEntriesTool::class, ['type' => 'query']);
 
     $response->assertOk()
@@ -54,7 +54,7 @@ it('lists a query summary without bindings', function () {
 });
 
 it('shows an entry without bindings, secrets, or trace arguments', function () {
-    $response = ObservabilityServer::actingAs(new ObservabilityUser)
+    $response = PortholeServer::actingAs(new PortholeUser)
         ->tool(ShowTelescopeEntryTool::class, ['id' => 'entry-1', 'limit' => 5]);
 
     $response->assertOk()
@@ -65,13 +65,13 @@ it('shows an entry without bindings, secrets, or trace arguments', function () {
 });
 
 it('does not register telescope prune until destructive tools are enabled', function () {
-    ObservabilityServer::actingAs(new ObservabilityUser)
+    PortholeServer::actingAs(new PortholeUser)
         ->tool(PruneTelescopeEntriesTool::class)
         ->assertNotRegistered();
 });
 
 it('caps prune retention and calls the operator only when destructive tools are enabled', function () {
-    config(['observability-mcp.destructive_enabled' => true, 'observability-mcp.prune_max_hours' => 48]);
+    config(['porthole.destructive_enabled' => true, 'porthole.prune_max_hours' => 48]);
 
     $operator = new class implements TelescopeOperator
     {
@@ -87,14 +87,14 @@ it('caps prune retention and calls the operator only when destructive tools are 
 
     app()->instance(TelescopeOperator::class, $operator);
 
-    ObservabilityServer::actingAs(new ObservabilityUser)
+    PortholeServer::actingAs(new PortholeUser)
         ->tool(PruneTelescopeEntriesTool::class, ['hours' => 48])
         ->assertOk()
         ->assertSee('pruned');
 
     expect($operator->hours)->toBe(48);
 
-    ObservabilityServer::actingAs(new ObservabilityUser)
+    PortholeServer::actingAs(new PortholeUser)
         ->tool(PruneTelescopeEntriesTool::class, ['hours' => 1000])
         ->assertHasErrors();
 });

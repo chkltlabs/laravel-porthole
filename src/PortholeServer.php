@@ -2,32 +2,32 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp;
+namespace Chkltlabs\Porthole;
 
-use Chkltlabs\ObservabilityMcp\Tools\Horizon\ContinueHorizonTool;
-use Chkltlabs\ObservabilityMcp\Tools\Horizon\HorizonJobsTool;
-use Chkltlabs\ObservabilityMcp\Tools\Horizon\HorizonMetricsTool;
-use Chkltlabs\ObservabilityMcp\Tools\Horizon\HorizonStatusTool;
-use Chkltlabs\ObservabilityMcp\Tools\Horizon\PauseHorizonTool;
-use Chkltlabs\ObservabilityMcp\Tools\Horizon\RetryFailedHorizonJobTool;
-use Chkltlabs\ObservabilityMcp\Tools\Pulse\PulseExceptionsTool;
-use Chkltlabs\ObservabilityMcp\Tools\Pulse\PulseHealthTool;
-use Chkltlabs\ObservabilityMcp\Tools\Pulse\PulseOverviewTool;
-use Chkltlabs\ObservabilityMcp\Tools\Pulse\PulseQueuesTool;
-use Chkltlabs\ObservabilityMcp\Tools\Pulse\PulseServersTool;
-use Chkltlabs\ObservabilityMcp\Tools\Pulse\PulseSlowJobsTool;
-use Chkltlabs\ObservabilityMcp\Tools\Pulse\PulseSlowOutgoingRequestsTool;
-use Chkltlabs\ObservabilityMcp\Tools\Pulse\PulseSlowQueriesTool;
-use Chkltlabs\ObservabilityMcp\Tools\Pulse\PulseSlowRequestsTool;
-use Chkltlabs\ObservabilityMcp\Tools\Telescope\ListTelescopeEntriesTool;
-use Chkltlabs\ObservabilityMcp\Tools\Telescope\PruneTelescopeEntriesTool;
-use Chkltlabs\ObservabilityMcp\Tools\Telescope\ShowTelescopeEntryTool;
+use Chkltlabs\Porthole\Tools\Horizon\ContinueHorizonTool;
+use Chkltlabs\Porthole\Tools\Horizon\HorizonJobsTool;
+use Chkltlabs\Porthole\Tools\Horizon\HorizonMetricsTool;
+use Chkltlabs\Porthole\Tools\Horizon\HorizonStatusTool;
+use Chkltlabs\Porthole\Tools\Horizon\PauseHorizonTool;
+use Chkltlabs\Porthole\Tools\Horizon\RetryFailedHorizonJobTool;
+use Chkltlabs\Porthole\Tools\Pulse\PulseExceptionsTool;
+use Chkltlabs\Porthole\Tools\Pulse\PulseHealthTool;
+use Chkltlabs\Porthole\Tools\Pulse\PulseOverviewTool;
+use Chkltlabs\Porthole\Tools\Pulse\PulseQueuesTool;
+use Chkltlabs\Porthole\Tools\Pulse\PulseServersTool;
+use Chkltlabs\Porthole\Tools\Pulse\PulseSlowJobsTool;
+use Chkltlabs\Porthole\Tools\Pulse\PulseSlowOutgoingRequestsTool;
+use Chkltlabs\Porthole\Tools\Pulse\PulseSlowQueriesTool;
+use Chkltlabs\Porthole\Tools\Pulse\PulseSlowRequestsTool;
+use Chkltlabs\Porthole\Tools\Telescope\ListTelescopeEntriesTool;
+use Chkltlabs\Porthole\Tools\Telescope\PruneTelescopeEntriesTool;
+use Chkltlabs\Porthole\Tools\Telescope\ShowTelescopeEntryTool;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Version;
 
-#[Name('Laravel Observability')]
+#[Name('Laravel Porthole')]
 #[Version('0.1.0')]
 #[Instructions(<<<'MARKDOWN'
     Read Horizon, Pulse, and Telescope through authenticated tools.
@@ -35,7 +35,7 @@ use Laravel\Mcp\Server\Attributes\Version;
     Horizon job payloads and Telescope query bindings are omitted.
     A missing package omits that package's tools.
     MARKDOWN)]
-class ObservabilityServer extends Server
+class PortholeServer extends Server
 {
     /**
      * @var array<int, class-string>

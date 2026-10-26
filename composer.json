@@ -1,9 +1,9 @@
 {
-    "name": "chkltlabs/laravel-observability-mcp",
+    "name": "chkltlabs/laravel-porthole",
     "description": "Authenticated, read-only Model Context Protocol server for Laravel Horizon, Pulse, and Telescope.",
     "type": "library",
     "license": "MIT",
-    "keywords": ["laravel", "mcp", "horizon", "pulse", "telescope", "observability"],
+    "keywords": ["laravel", "mcp", "horizon", "pulse", "telescope", "porthole"],
     "require": {
         "php": "^8.2",
         "illuminate/auth": "^11.45.3|^12.41.1|^13.0",
@@ -30,18 +30,18 @@
     },
     "autoload": {
         "psr-4": {
-            "Chkltlabs\\ObservabilityMcp\\": "src/"
+            "Chkltlabs\\Porthole\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Chkltlabs\\ObservabilityMcp\\Tests\\": "tests/"
+            "Chkltlabs\\Porthole\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Chkltlabs\\ObservabilityMcp\\ObservabilityMcpServiceProvider"
+                "Chkltlabs\\Porthole\\PortholeServiceProvider"
             ]
         }
     },

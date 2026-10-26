@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Horizon;
+namespace Chkltlabs\Porthole\Horizon;
 
-use Chkltlabs\ObservabilityMcp\Support\Redactor;
-use Chkltlabs\ObservabilityMcp\Support\ResultLimit;
+use Chkltlabs\Porthole\Support\Redactor;
+use Chkltlabs\Porthole\Support\ResultLimit;
 use Illuminate\Support\Collection;
 use Laravel\Horizon\Contracts\JobRepository;
 use Laravel\Horizon\Contracts\MasterSupervisorRepository;

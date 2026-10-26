@@ -1,8 +1,8 @@
-# Laravel Observability MCP
+# Laravel Porthole
 
 Authenticated Model Context Protocol server for Laravel Horizon, Pulse, and Telescope. It is built on [laravel/mcp](https://github.com/laravel/mcp).
 
-Read tools are registered by default. Write tools stay unregistered until you opt in. Every HTTP call requires an authenticated user who passes the `viewObservabilityMcp` gate, and each tool also checks the gate for that package (`viewHorizon`, `viewPulse`, or `viewTelescope`). If a gate is missing, the call is denied.
+Read tools are registered by default. Write tools stay unregistered until you opt in. Every HTTP call requires an authenticated user who passes the `viewPorthole` gate, and each tool also checks the gate for that package (`viewHorizon`, `viewPulse`, or `viewTelescope`). If a gate is missing, the call is denied.
 
 ## Requirements
 
@@ -14,23 +14,23 @@ Read tools are registered by default. Write tools stay unregistered until you op
 ## Install
 
 ```bash
-composer require chkltlabs/laravel-observability-mcp
+composer require chkltlabs/laravel-porthole
 ```
 
 Until the package is on Packagist, require it from Git:
 
 ```bash
-composer config repositories.observability-mcp vcs https://github.com/chkltlabs/laravel-observability-mcp.git
-composer require chkltlabs/laravel-observability-mcp:dev-main
+composer config repositories.porthole vcs https://github.com/chkltlabs/laravel-porthole.git
+composer require chkltlabs/laravel-porthole:dev-main
 ```
 
 Publish the configuration when you want to commit overrides:
 
 ```bash
-php artisan vendor:publish --tag=observability-mcp-config
+php artisan vendor:publish --tag=porthole-config
 ```
 
-The HTTP server is `POST /mcp/observability`.
+The HTTP server is `POST /mcp/porthole`.
 
 ## Authorization
 
@@ -40,22 +40,22 @@ Define the gate in `AppServiceProvider::boot()` before this package boots. The p
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 
-Gate::define('viewObservabilityMcp', function (User $user): bool {
+Gate::define('viewPorthole', function (User $user): bool {
     return (bool) $user->is_admin;
 });
 ```
 
-Horizon, Pulse, and Telescope still apply their own gates. A caller needs both `viewObservabilityMcp` and the source gate.
+Horizon, Pulse, and Telescope still apply their own gates. A caller needs both `viewPorthole` and the source gate.
 
 Authenticate the route with the guard your MCP clients already use:
 
 ```env
-OBSERVABILITY_MCP_AUTH_MIDDLEWARE=auth:sanctum
+PORTHOLE_AUTH_MIDDLEWARE=auth:sanctum
 ```
 
-Passport apps should use `auth:api`. For OAuth discovery and dynamic client registration, set `OBSERVABILITY_MCP_OAUTH_ENABLED=true`. Leave that off until you intend to expose the public registration route. The HTTP server still requires authentication.
+Passport apps should use `auth:api`. For OAuth discovery and dynamic client registration, set `PORTHOLE_OAUTH_ENABLED=true`. Leave that off until you intend to expose the public registration route. The HTTP server still requires authentication.
 
-`OBSERVABILITY_MCP_AUTH_REQUIRED=false` removes the authentication check. Leave it unset on any shared environment. Unrecognized values keep authentication required.
+`PORTHOLE_AUTH_REQUIRED=false` removes the authentication check. Leave it unset on any shared environment. Unrecognized values keep authentication required.
 
 ## What an agent can read
 
@@ -85,30 +85,30 @@ Horizon job payloads are reduced to the display name. Telescope query bindings, 
 These tools are absent from `tools/list` until the matching flag is true. Calling one while the flag is off returns an error and does not touch Horizon or Telescope.
 
 ```env
-OBSERVABILITY_MCP_WRITES_ENABLED=true
-OBSERVABILITY_MCP_DESTRUCTIVE_ENABLED=true
+PORTHOLE_WRITES_ENABLED=true
+PORTHOLE_DESTRUCTIVE_ENABLED=true
 ```
 
 `writes_enabled` registers `horizon-pause`, `horizon-continue`, and `horizon-retry-failed-job`.
 
-`destructive_enabled` registers `telescope-prune`. Retention hours are capped by `OBSERVABILITY_MCP_PRUNE_MAX_HOURS` (default 168).
+`destructive_enabled` registers `telescope-prune`. Retention hours are capped by `PORTHOLE_PRUNE_MAX_HOURS` (default 168).
 
 ## Local stdio
 
 Stdio is off by default because the process has no transport credentials. Tool calls still require an authenticated user when you enable it:
 
 ```env
-OBSERVABILITY_MCP_STDIO_ENABLED=true
+PORTHOLE_STDIO_ENABLED=true
 ```
 
-Register it with the Artisan handle `observability`:
+Register it with the Artisan handle `porthole`:
 
 ```json
 {
     "mcpServers": {
-        "observability": {
+        "porthole": {
             "command": "php",
-            "args": ["artisan", "mcp:start", "observability"]
+            "args": ["artisan", "mcp:start", "porthole"]
         }
     }
 }

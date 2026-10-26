@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Tools\Horizon;
+namespace Chkltlabs\Porthole\Tools\Horizon;
 
-use Chkltlabs\ObservabilityMcp\Horizon\HorizonOperator;
-use Chkltlabs\ObservabilityMcp\Support\InstalledPackage;
-use Chkltlabs\ObservabilityMcp\Tools\Concerns\AuthorizesObservability;
+use Chkltlabs\Porthole\Horizon\HorizonOperator;
+use Chkltlabs\Porthole\Support\InstalledPackage;
+use Chkltlabs\Porthole\Tools\Concerns\AuthorizesPorthole;
 use Laravel\Horizon\Contracts\MasterSupervisorRepository;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -19,15 +19,15 @@ use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 #[IsIdempotent]
 class PauseHorizonTool extends Tool
 {
-    use AuthorizesObservability;
+    use AuthorizesPorthole;
 
     protected string $name = 'horizon-pause';
 
-    protected string $description = 'Pause Horizon supervisors. Registered only when observability-mcp.writes_enabled is true.';
+    protected string $description = 'Pause Horizon supervisors. Registered only when porthole.writes_enabled is true.';
 
     public function shouldRegister(): bool
     {
-        return config('observability-mcp.writes_enabled') === true
+        return config('porthole.writes_enabled') === true
             && InstalledPackage::exists(MasterSupervisorRepository::class);
     }
 

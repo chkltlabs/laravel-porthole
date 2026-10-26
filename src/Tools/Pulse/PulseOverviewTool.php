@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Tools\Pulse;
+namespace Chkltlabs\Porthole\Tools\Pulse;
 
-use Chkltlabs\ObservabilityMcp\Pulse\PulseSnapshot;
-use Chkltlabs\ObservabilityMcp\Support\InstalledPackage;
-use Chkltlabs\ObservabilityMcp\Tools\Concerns\AuthorizesObservability;
+use Chkltlabs\Porthole\Pulse\PulseSnapshot;
+use Chkltlabs\Porthole\Support\InstalledPackage;
+use Chkltlabs\Porthole\Tools\Concerns\AuthorizesPorthole;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -18,7 +18,7 @@ use Laravel\Pulse\Contracts\Storage;
 #[IsReadOnly]
 class PulseOverviewTool extends Tool
 {
-    use AuthorizesObservability;
+    use AuthorizesPorthole;
 
     protected string $name = 'pulse-overview';
 

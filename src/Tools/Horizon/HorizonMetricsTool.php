@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Tools\Horizon;
+namespace Chkltlabs\Porthole\Tools\Horizon;
 
-use Chkltlabs\ObservabilityMcp\Horizon\HorizonSnapshot;
-use Chkltlabs\ObservabilityMcp\Support\InstalledPackage;
-use Chkltlabs\ObservabilityMcp\Support\ResultLimit;
-use Chkltlabs\ObservabilityMcp\Tools\Concerns\AuthorizesObservability;
+use Chkltlabs\Porthole\Horizon\HorizonSnapshot;
+use Chkltlabs\Porthole\Support\InstalledPackage;
+use Chkltlabs\Porthole\Support\ResultLimit;
+use Chkltlabs\Porthole\Tools\Concerns\AuthorizesPorthole;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Horizon\Contracts\MetricsRepository;
 use Laravel\Mcp\Request;
@@ -19,7 +19,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsReadOnly]
 class HorizonMetricsTool extends Tool
 {
-    use AuthorizesObservability;
+    use AuthorizesPorthole;
 
     protected string $name = 'horizon-metrics';
 
@@ -37,7 +37,7 @@ class HorizonMetricsTool extends Tool
         }
 
         $validated = $request->validate([
-            'limit' => ['nullable', 'integer', 'min:1', 'max:'.ResultLimit::cap(config('observability-mcp.limits.max'))],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:'.ResultLimit::cap(config('porthole.limits.max'))],
         ]);
 
         return Response::structured(app(HorizonSnapshot::class)->metrics(

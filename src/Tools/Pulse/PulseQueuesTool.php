@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Tools\Pulse;
+namespace Chkltlabs\Porthole\Tools\Pulse;
 
-use Chkltlabs\ObservabilityMcp\Pulse\PulseSnapshot;
-use Chkltlabs\ObservabilityMcp\Support\InstalledPackage;
-use Chkltlabs\ObservabilityMcp\Support\ResultLimit;
-use Chkltlabs\ObservabilityMcp\Tools\Concerns\AuthorizesObservability;
+use Chkltlabs\Porthole\Pulse\PulseSnapshot;
+use Chkltlabs\Porthole\Support\InstalledPackage;
+use Chkltlabs\Porthole\Support\ResultLimit;
+use Chkltlabs\Porthole\Tools\Concerns\AuthorizesPorthole;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -19,7 +19,7 @@ use Laravel\Pulse\Contracts\Storage;
 #[IsReadOnly]
 class PulseQueuesTool extends Tool
 {
-    use AuthorizesObservability;
+    use AuthorizesPorthole;
 
     protected string $name = 'pulse-queues';
 
@@ -38,7 +38,7 @@ class PulseQueuesTool extends Tool
 
         $validated = $request->validate([
             'period' => ['nullable', 'in:1h,6h,24h,7d'],
-            'limit' => ['nullable', 'integer', 'min:1', 'max:'.ResultLimit::cap(config('observability-mcp.limits.max'))],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:'.ResultLimit::cap(config('porthole.limits.max'))],
         ]);
 
         return Response::structured(array_merge(

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Tools\Telescope;
+namespace Chkltlabs\Porthole\Tools\Telescope;
 
-use Chkltlabs\ObservabilityMcp\Support\InstalledPackage;
-use Chkltlabs\ObservabilityMcp\Support\ResultLimit;
-use Chkltlabs\ObservabilityMcp\Telescope\TelescopeSnapshot;
-use Chkltlabs\ObservabilityMcp\Tools\Concerns\AuthorizesObservability;
+use Chkltlabs\Porthole\Support\InstalledPackage;
+use Chkltlabs\Porthole\Support\ResultLimit;
+use Chkltlabs\Porthole\Telescope\TelescopeSnapshot;
+use Chkltlabs\Porthole\Tools\Concerns\AuthorizesPorthole;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -19,7 +19,7 @@ use Laravel\Telescope\Contracts\EntriesRepository;
 #[IsReadOnly]
 class ShowTelescopeEntryTool extends Tool
 {
-    use AuthorizesObservability;
+    use AuthorizesPorthole;
 
     protected string $name = 'telescope-show';
 
@@ -40,7 +40,7 @@ class ShowTelescopeEntryTool extends Tool
             'id' => ['required', 'string', 'max:100'],
             'types' => ['nullable', 'array', 'max:10'],
             'types.*' => ['string', 'max:50'],
-            'limit' => ['nullable', 'integer', 'min:1', 'max:'.ResultLimit::cap(config('observability-mcp.limits.max'))],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:'.ResultLimit::cap(config('porthole.limits.max'))],
         ]);
 
         $shown = app(TelescopeSnapshot::class)->show(

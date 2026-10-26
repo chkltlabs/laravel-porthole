@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-use Chkltlabs\ObservabilityMcp\ObservabilityServer;
-use Chkltlabs\ObservabilityMcp\Tests\ObservabilityUser;
-use Chkltlabs\ObservabilityMcp\Tools\Pulse\PulseServersTool;
-use Chkltlabs\ObservabilityMcp\Tools\Pulse\PulseSlowQueriesTool;
+use Chkltlabs\Porthole\PortholeServer;
+use Chkltlabs\Porthole\Tests\PortholeUser;
+use Chkltlabs\Porthole\Tools\Pulse\PulseServersTool;
+use Chkltlabs\Porthole\Tools\Pulse\PulseSlowQueriesTool;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Pulse\Contracts\Storage;
 
 beforeEach(function () {
-    Gate::define('viewObservabilityMcp', fn (): bool => true);
+    Gate::define('viewPorthole', fn (): bool => true);
     Gate::define('viewPulse', fn (): bool => true);
 
     $storage = Mockery::mock(Storage::class);
@@ -39,7 +39,7 @@ beforeEach(function () {
 });
 
 it('masks sql literals in slow queries and filters in php', function () {
-    $response = ObservabilityServer::actingAs(new ObservabilityUser)
+    $response = PortholeServer::actingAs(new PortholeUser)
         ->tool(PulseSlowQueriesTool::class, [
             'period' => '1h',
             'search' => 'users',
@@ -51,7 +51,7 @@ it('masks sql literals in slow queries and filters in php', function () {
 });
 
 it('redacts sensitive server fields', function () {
-    $response = ObservabilityServer::actingAs(new ObservabilityUser)
+    $response = PortholeServer::actingAs(new PortholeUser)
         ->tool(PulseServersTool::class);
 
     $response->assertOk()
@@ -60,7 +60,7 @@ it('redacts sensitive server fields', function () {
 });
 
 it('rejects a pulse period outside the windows pulse aggregates', function () {
-    ObservabilityServer::actingAs(new ObservabilityUser)
+    PortholeServer::actingAs(new PortholeUser)
         ->tool(PulseSlowQueriesTool::class, ['period' => '30d'])
         ->assertHasErrors();
 });

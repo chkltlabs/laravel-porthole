@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Pulse;
+namespace Chkltlabs\Porthole\Pulse;
 
 use Carbon\CarbonInterval;
-use Chkltlabs\ObservabilityMcp\Support\Redactor;
-use Chkltlabs\ObservabilityMcp\Support\ResultLimit;
+use Chkltlabs\Porthole\Support\Redactor;
+use Chkltlabs\Porthole\Support\ResultLimit;
 use Illuminate\Support\Collection;
 use Laravel\Pulse\Contracts\Storage;
 

@@ -2,6 +2,6 @@
 
 declare(strict_types=1);
 
-use Chkltlabs\ObservabilityMcp\Tests\TestCase;
+use Chkltlabs\Porthole\Tests\TestCase;
 
 uses(TestCase::class)->in('Feature');

@@ -2,49 +2,49 @@
 
 declare(strict_types=1);
 
-use Chkltlabs\ObservabilityMcp\Http\Middleware\RequireObservabilityAuthentication;
-use Chkltlabs\ObservabilityMcp\ObservabilityMcpServiceProvider;
-use Chkltlabs\ObservabilityMcp\Tests\ObservabilityUser;
+use Chkltlabs\Porthole\Http\Middleware\RequirePortholeAuthentication;
+use Chkltlabs\Porthole\PortholeServiceProvider;
+use Chkltlabs\Porthole\Tests\PortholeUser;
 use Illuminate\Routing\RouteCollection;
 use Illuminate\Support\Facades\Gate;
 
 it('rejects a guest before the mcp handler runs', function () {
-    $this->postJson('/mcp/observability', [])->assertUnauthorized();
+    $this->postJson('/mcp/porthole', [])->assertUnauthorized();
 });
 
 it('rejects an authenticated account that is not allowed through the gate', function () {
-    $this->actingAs(new ObservabilityUser)
-        ->postJson('/mcp/observability', [])
+    $this->actingAs(new PortholeUser)
+        ->postJson('/mcp/porthole', [])
         ->assertForbidden();
 });
 
 it('lets an authorized account past the authentication middleware', function () {
-    Gate::define('viewObservabilityMcp', fn (): bool => true);
+    Gate::define('viewPorthole', fn (): bool => true);
 
-    $response = $this->actingAs(new ObservabilityUser)
-        ->postJson('/mcp/observability', []);
+    $response = $this->actingAs(new PortholeUser)
+        ->postJson('/mcp/porthole', []);
 
     expect($response->status())->not->toBe(401)->and($response->status())->not->toBe(403);
 });
 
 it('puts authentication ahead of protocol header checks', function () {
     $route = collect(app('router')->getRoutes()->getRoutes())
-        ->first(fn ($route): bool => $route->uri() === 'mcp/observability' && in_array('POST', $route->methods(), true));
+        ->first(fn ($route): bool => $route->uri() === 'mcp/porthole' && in_array('POST', $route->methods(), true));
 
     expect($route)->not->toBeNull()
-        ->and($route->middleware()[0])->toBe(RequireObservabilityAuthentication::class);
+        ->and($route->middleware()[0])->toBe(RequirePortholeAuthentication::class);
 });
 
 it('does not register the http server when the package is disabled', function () {
-    config(['observability-mcp.enabled' => false]);
+    config(['porthole.enabled' => false]);
 
-    $provider = app()->getProvider(ObservabilityMcpServiceProvider::class);
+    $provider = app()->getProvider(PortholeServiceProvider::class);
     app('router')->setRoutes(new RouteCollection);
 
     $provider->boot();
 
     $route = collect(app('router')->getRoutes()->getRoutes())
-        ->first(fn ($route): bool => $route->uri() === 'mcp/observability');
+        ->first(fn ($route): bool => $route->uri() === 'mcp/porthole');
 
     expect($route)->toBeNull();
 });

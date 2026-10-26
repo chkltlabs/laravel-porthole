@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Tools\Pulse;
+namespace Chkltlabs\Porthole\Tools\Pulse;
 
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;

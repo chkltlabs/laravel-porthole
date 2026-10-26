@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use Chkltlabs\ObservabilityMcp\Horizon\HorizonOperator;
-use Chkltlabs\ObservabilityMcp\ObservabilityServer;
-use Chkltlabs\ObservabilityMcp\Tests\ObservabilityUser;
-use Chkltlabs\ObservabilityMcp\Tools\Horizon\HorizonJobsTool;
-use Chkltlabs\ObservabilityMcp\Tools\Horizon\HorizonStatusTool;
-use Chkltlabs\ObservabilityMcp\Tools\Horizon\PauseHorizonTool;
+use Chkltlabs\Porthole\Horizon\HorizonOperator;
+use Chkltlabs\Porthole\PortholeServer;
+use Chkltlabs\Porthole\Tests\PortholeUser;
+use Chkltlabs\Porthole\Tools\Horizon\HorizonJobsTool;
+use Chkltlabs\Porthole\Tools\Horizon\HorizonStatusTool;
+use Chkltlabs\Porthole\Tools\Horizon\PauseHorizonTool;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Horizon\Contracts\JobRepository;
 use Laravel\Horizon\Contracts\MasterSupervisorRepository;
@@ -17,7 +17,7 @@ use Laravel\Horizon\Contracts\WorkloadRepository;
 use Laravel\Mcp\Request;
 
 beforeEach(function () {
-    Gate::define('viewObservabilityMcp', fn (): bool => true);
+    Gate::define('viewPorthole', fn (): bool => true);
     Gate::define('viewHorizon', fn (): bool => true);
 
     $jobs = Mockery::mock(JobRepository::class);
@@ -65,7 +65,7 @@ beforeEach(function () {
 });
 
 it('returns horizon status without process commands or supervisor pids', function () {
-    $response = ObservabilityServer::actingAs(new ObservabilityUser)
+    $response = PortholeServer::actingAs(new PortholeUser)
         ->tool(HorizonStatusTool::class);
 
     $response->assertOk()
@@ -76,7 +76,7 @@ it('returns horizon status without process commands or supervisor pids', functio
 });
 
 it('lists job names and omits serialized commands', function () {
-    $response = ObservabilityServer::actingAs(new ObservabilityUser)
+    $response = PortholeServer::actingAs(new PortholeUser)
         ->tool(HorizonJobsTool::class, ['status' => 'recent']);
 
     $response->assertOk()
@@ -87,19 +87,19 @@ it('lists job names and omits serialized commands', function () {
 it('refuses horizon data when the horizon gate denies the account', function () {
     Gate::define('viewHorizon', fn (): bool => false);
 
-    ObservabilityServer::actingAs(new ObservabilityUser)
+    PortholeServer::actingAs(new PortholeUser)
         ->tool(HorizonStatusTool::class)
-        ->assertSee('not authorized to read this observability source');
+        ->assertSee('not authorized to read this Porthole source');
 });
 
 it('does not register horizon pause while writes are disabled', function () {
-    ObservabilityServer::actingAs(new ObservabilityUser)
+    PortholeServer::actingAs(new PortholeUser)
         ->tool(PauseHorizonTool::class)
         ->assertNotRegistered();
 });
 
 it('pauses horizon only after writes are enabled', function () {
-    config(['observability-mcp.writes_enabled' => true]);
+    config(['porthole.writes_enabled' => true]);
 
     $operator = new class implements HorizonOperator
     {
@@ -120,7 +120,7 @@ it('pauses horizon only after writes are enabled', function () {
 
     app()->instance(HorizonOperator::class, $operator);
 
-    ObservabilityServer::actingAs(new ObservabilityUser)
+    PortholeServer::actingAs(new PortholeUser)
         ->tool(PauseHorizonTool::class)
         ->assertOk()
         ->assertSee('paused');
@@ -147,7 +147,7 @@ it('does not call the horizon operator when a write tool is invoked while writes
     };
 
     app()->instance(HorizonOperator::class, $operator);
-    $this->actingAs(new ObservabilityUser);
+    $this->actingAs(new PortholeUser);
 
     app(PauseHorizonTool::class)->handle(new Request);
 

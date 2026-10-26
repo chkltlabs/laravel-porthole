@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Tools\Horizon;
+namespace Chkltlabs\Porthole\Tools\Horizon;
 
-use Chkltlabs\ObservabilityMcp\Horizon\HorizonOperator;
-use Chkltlabs\ObservabilityMcp\Support\InstalledPackage;
-use Chkltlabs\ObservabilityMcp\Tools\Concerns\AuthorizesObservability;
+use Chkltlabs\Porthole\Horizon\HorizonOperator;
+use Chkltlabs\Porthole\Support\InstalledPackage;
+use Chkltlabs\Porthole\Tools\Concerns\AuthorizesPorthole;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Horizon\Contracts\JobRepository;
 use Laravel\Mcp\Request;
@@ -18,15 +18,15 @@ use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 #[IsDestructive]
 class RetryFailedHorizonJobTool extends Tool
 {
-    use AuthorizesObservability;
+    use AuthorizesPorthole;
 
     protected string $name = 'horizon-retry-failed-job';
 
-    protected string $description = 'Retry one failed Horizon job by id. Registered only when observability-mcp.writes_enabled is true.';
+    protected string $description = 'Retry one failed Horizon job by id. Registered only when porthole.writes_enabled is true.';
 
     public function shouldRegister(): bool
     {
-        return config('observability-mcp.writes_enabled') === true
+        return config('porthole.writes_enabled') === true
             && InstalledPackage::exists(JobRepository::class);
     }
 

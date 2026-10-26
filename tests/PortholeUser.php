@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Tests;
+namespace Chkltlabs\Porthole\Tests;
 
 use Illuminate\Foundation\Auth\User;
 
-class ObservabilityUser extends User
+class PortholeUser extends User
 {
     protected $guarded = [];
 

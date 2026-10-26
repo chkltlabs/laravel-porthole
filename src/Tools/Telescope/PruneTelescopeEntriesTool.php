@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Tools\Telescope;
+namespace Chkltlabs\Porthole\Tools\Telescope;
 
-use Chkltlabs\ObservabilityMcp\Support\InstalledPackage;
-use Chkltlabs\ObservabilityMcp\Telescope\TelescopeOperator;
-use Chkltlabs\ObservabilityMcp\Tools\Concerns\AuthorizesObservability;
+use Chkltlabs\Porthole\Support\InstalledPackage;
+use Chkltlabs\Porthole\Telescope\TelescopeOperator;
+use Chkltlabs\Porthole\Tools\Concerns\AuthorizesPorthole;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -18,15 +18,15 @@ use Laravel\Telescope\Contracts\PrunableRepository;
 #[IsDestructive]
 class PruneTelescopeEntriesTool extends Tool
 {
-    use AuthorizesObservability;
+    use AuthorizesPorthole;
 
     protected string $name = 'telescope-prune';
 
-    protected string $description = 'Delete Telescope entries older than a number of hours. Registered only when observability-mcp.destructive_enabled is true.';
+    protected string $description = 'Delete Telescope entries older than a number of hours. Registered only when porthole.destructive_enabled is true.';
 
     public function shouldRegister(): bool
     {
-        return config('observability-mcp.destructive_enabled') === true
+        return config('porthole.destructive_enabled') === true
             && InstalledPackage::exists(PrunableRepository::class);
     }
 
@@ -40,7 +40,7 @@ class PruneTelescopeEntriesTool extends Tool
             return $denied;
         }
 
-        $maxHours = max(1, (int) config('observability-mcp.prune_max_hours', 168));
+        $maxHours = max(1, (int) config('porthole.prune_max_hours', 168));
 
         $validated = $request->validate([
             'hours' => ['nullable', 'integer', 'min:1', 'max:'.$maxHours],

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Horizon;
+namespace Chkltlabs\Porthole\Horizon;
 
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;

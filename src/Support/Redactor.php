@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Support;
+namespace Chkltlabs\Porthole\Support;
 
 final class Redactor
 {

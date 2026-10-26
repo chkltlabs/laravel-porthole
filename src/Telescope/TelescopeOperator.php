@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Telescope;
+namespace Chkltlabs\Porthole\Telescope;
 
 interface TelescopeOperator
 {

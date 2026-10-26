@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Chkltlabs\ObservabilityMcp\Telescope;
+namespace Chkltlabs\Porthole\Telescope;
 
-use Chkltlabs\ObservabilityMcp\Support\Redactor;
-use Chkltlabs\ObservabilityMcp\Support\ResultLimit;
+use Chkltlabs\Porthole\Support\Redactor;
+use Chkltlabs\Porthole\Support\ResultLimit;
 use Laravel\Telescope\Contracts\EntriesRepository;
 use Laravel\Telescope\EntryResult;
 use Laravel\Telescope\Storage\EntryQueryOptions;
@@ -102,7 +102,7 @@ final class TelescopeSnapshot
         }
 
         if (isset($content['trace']) && is_array($content['trace'])) {
-            $frames = (int) config('observability-mcp.limits.trace_frames', 8);
+            $frames = (int) config('porthole.limits.trace_frames', 8);
             $content['trace'] = array_slice(array_map(function (mixed $frame): array {
                 if (! is_array($frame)) {
                     return [];

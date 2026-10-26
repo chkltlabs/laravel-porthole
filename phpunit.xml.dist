@@ -6,7 +6,7 @@
          cacheDirectory=".phpunit.cache"
 >
     <testsuites>
-        <testsuite name="Observability MCP">
+        <testsuite name="Porthole">
             <directory>tests</directory>
         </testsuite>
     </testsuites>

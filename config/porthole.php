@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Chkltlabs\ObservabilityMcp\Support\EnvBoolean;
+use Chkltlabs\Porthole\Support\EnvBoolean;
 
 return [
 
@@ -12,17 +12,17 @@ return [
     |--------------------------------------------------------------------------
     |
     | The HTTP server is registered when enabled. Authentication stays required
-    | until OBSERVABILITY_MCP_AUTH_REQUIRED is set to a real boolean false.
+    | until PORTHOLE_AUTH_REQUIRED is set to a real boolean false.
     | An unrecognized value keeps the secure default.
     |
     */
 
-    'enabled' => EnvBoolean::parse(env('OBSERVABILITY_MCP_ENABLED', true), true),
+    'enabled' => EnvBoolean::parse(env('PORTHOLE_ENABLED', true), true),
 
-    'path' => env('OBSERVABILITY_MCP_PATH', 'mcp/observability'),
+    'path' => env('PORTHOLE_PATH', 'mcp/porthole'),
 
     'auth' => [
-        'required' => EnvBoolean::parse(env('OBSERVABILITY_MCP_AUTH_REQUIRED', true), true),
+        'required' => EnvBoolean::parse(env('PORTHOLE_AUTH_REQUIRED', true), true),
 
         /*
         | Middleware that authenticates the caller before the package gate runs.
@@ -31,10 +31,10 @@ return [
         */
         'middleware' => array_values(array_filter(array_map(
             trim(...),
-            explode(',', (string) env('OBSERVABILITY_MCP_AUTH_MIDDLEWARE', '')),
+            explode(',', (string) env('PORTHOLE_AUTH_MIDDLEWARE', '')),
         ))),
 
-        'guard' => env('OBSERVABILITY_MCP_GUARD'),
+        'guard' => env('PORTHOLE_GUARD'),
     ],
 
     /*
@@ -49,11 +49,11 @@ return [
     |
     */
 
-    'writes_enabled' => EnvBoolean::parse(env('OBSERVABILITY_MCP_WRITES_ENABLED', false), false),
+    'writes_enabled' => EnvBoolean::parse(env('PORTHOLE_WRITES_ENABLED', false), false),
 
-    'destructive_enabled' => EnvBoolean::parse(env('OBSERVABILITY_MCP_DESTRUCTIVE_ENABLED', false), false),
+    'destructive_enabled' => EnvBoolean::parse(env('PORTHOLE_DESTRUCTIVE_ENABLED', false), false),
 
-    'prune_max_hours' => (int) env('OBSERVABILITY_MCP_PRUNE_MAX_HOURS', 168),
+    'prune_max_hours' => (int) env('PORTHOLE_PRUNE_MAX_HOURS', 168),
 
     /*
     |--------------------------------------------------------------------------
@@ -68,12 +68,12 @@ return [
     */
 
     'stdio' => [
-        'enabled' => EnvBoolean::parse(env('OBSERVABILITY_MCP_STDIO_ENABLED', false), false),
-        'handle' => env('OBSERVABILITY_MCP_STDIO_HANDLE', 'observability'),
+        'enabled' => EnvBoolean::parse(env('PORTHOLE_STDIO_ENABLED', false), false),
+        'handle' => env('PORTHOLE_STDIO_HANDLE', 'porthole'),
     ],
 
     'oauth' => [
-        'enabled' => EnvBoolean::parse(env('OBSERVABILITY_MCP_OAUTH_ENABLED', false), false),
+        'enabled' => EnvBoolean::parse(env('PORTHOLE_OAUTH_ENABLED', false), false),
     ],
 
     'limits' => [
