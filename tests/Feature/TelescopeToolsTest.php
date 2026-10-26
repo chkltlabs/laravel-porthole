@@ -1,0 +1,100 @@
+<?php
+
+declare(strict_types=1);
+
+use Chkltlabs\ObservabilityMcp\ObservabilityServer;
+use Chkltlabs\ObservabilityMcp\Telescope\TelescopeOperator;
+use Chkltlabs\ObservabilityMcp\Tests\ObservabilityUser;
+use Chkltlabs\ObservabilityMcp\Tools\Telescope\ListTelescopeEntriesTool;
+use Chkltlabs\ObservabilityMcp\Tools\Telescope\PruneTelescopeEntriesTool;
+use Chkltlabs\ObservabilityMcp\Tools\Telescope\ShowTelescopeEntryTool;
+use Illuminate\Support\Facades\Gate;
+use Laravel\Telescope\Contracts\EntriesRepository;
+use Laravel\Telescope\EntryResult;
+
+beforeEach(function () {
+    Gate::define('viewObservabilityMcp', fn (): bool => true);
+    Gate::define('viewTelescope', fn (): bool => true);
+
+    $entry = new EntryResult(
+        'entry-1',
+        1,
+        'batch-1',
+        'query',
+        'family-1',
+        [
+            'sql' => "select * from users where email = 'secret@example.com'",
+            'bindings' => ['secret@example.com'],
+            'time' => 12,
+            'slow' => true,
+            'connection' => 'mysql',
+            'password' => 'hunter2',
+            'trace' => [
+                ['file' => 'app/Http/Controllers/AccountController.php', 'line' => 40, 'args' => ['token' => 'abc']],
+            ],
+        ],
+        now(),
+    );
+
+    $repository = Mockery::mock(EntriesRepository::class);
+    $repository->shouldReceive('get')->andReturn(collect([$entry]))->byDefault();
+    $repository->shouldReceive('find')->andReturn($entry)->byDefault();
+
+    app()->instance(EntriesRepository::class, $repository);
+});
+
+it('lists a query summary without bindings', function () {
+    $response = ObservabilityServer::actingAs(new ObservabilityUser)
+        ->tool(ListTelescopeEntriesTool::class, ['type' => 'query']);
+
+    $response->assertOk()
+        ->assertSee('select * from users')
+        ->assertDontSee('secret@example.com')
+        ->assertDontSee('hunter2');
+});
+
+it('shows an entry without bindings, secrets, or trace arguments', function () {
+    $response = ObservabilityServer::actingAs(new ObservabilityUser)
+        ->tool(ShowTelescopeEntryTool::class, ['id' => 'entry-1', 'limit' => 5]);
+
+    $response->assertOk()
+        ->assertSee('AccountController.php')
+        ->assertDontSee('secret@example.com')
+        ->assertDontSee('hunter2')
+        ->assertDontSee('"args"');
+});
+
+it('does not register telescope prune until destructive tools are enabled', function () {
+    ObservabilityServer::actingAs(new ObservabilityUser)
+        ->tool(PruneTelescopeEntriesTool::class)
+        ->assertNotRegistered();
+});
+
+it('caps prune retention and calls the operator only when destructive tools are enabled', function () {
+    config(['observability-mcp.destructive_enabled' => true, 'observability-mcp.prune_max_hours' => 48]);
+
+    $operator = new class implements TelescopeOperator
+    {
+        public ?int $hours = null;
+
+        public function prune(int $hours, bool $keepExceptions): int
+        {
+            $this->hours = $hours;
+
+            return 3;
+        }
+    };
+
+    app()->instance(TelescopeOperator::class, $operator);
+
+    ObservabilityServer::actingAs(new ObservabilityUser)
+        ->tool(PruneTelescopeEntriesTool::class, ['hours' => 48])
+        ->assertOk()
+        ->assertSee('pruned');
+
+    expect($operator->hours)->toBe(48);
+
+    ObservabilityServer::actingAs(new ObservabilityUser)
+        ->tool(PruneTelescopeEntriesTool::class, ['hours' => 1000])
+        ->assertHasErrors();
+});

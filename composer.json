@@ -1,0 +1,60 @@
+{
+    "name": "chkltlabs/laravel-observability-mcp",
+    "description": "Authenticated, read-only Model Context Protocol server for Laravel Horizon, Pulse, and Telescope.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["laravel", "mcp", "horizon", "pulse", "telescope", "observability"],
+    "require": {
+        "php": "^8.2",
+        "illuminate/auth": "^11.45.3|^12.41.1|^13.0",
+        "illuminate/console": "^11.45.3|^12.41.1|^13.0",
+        "illuminate/contracts": "^11.45.3|^12.41.1|^13.0",
+        "illuminate/routing": "^11.45.3|^12.41.1|^13.0",
+        "illuminate/support": "^11.45.3|^12.41.1|^13.0",
+        "laravel/mcp": "^1.0"
+    },
+    "require-dev": {
+        "laravel/horizon": "^5.33",
+        "laravel/pint": "^1.27",
+        "laravel/pulse": "^1.4",
+        "laravel/telescope": "^5.16",
+        "orchestra/testbench": "^9.15|^10.8|^11.0",
+        "pestphp/pest": "^3.8|^4.1"
+    },
+    "suggest": {
+        "laravel/horizon": "Required to register the Horizon tools.",
+        "laravel/passport": "OAuth 2.1 authentication for remote MCP clients.",
+        "laravel/pulse": "Required to register the Pulse tools.",
+        "laravel/sanctum": "Bearer-token authentication for the HTTP MCP server.",
+        "laravel/telescope": "Required to register the Telescope tools."
+    },
+    "autoload": {
+        "psr-4": {
+            "Chkltlabs\\ObservabilityMcp\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Chkltlabs\\ObservabilityMcp\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Chkltlabs\\ObservabilityMcp\\ObservabilityMcpServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "format": "pint",
+        "test": "pest"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
