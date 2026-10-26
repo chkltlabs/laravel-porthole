@@ -75,7 +75,8 @@ return [
     | Local stdio and OAuth
     |--------------------------------------------------------------------------
     |
-    | Stdio has no transport credentials, so it stays off until you enable it.
+    | Stdio has no transport credentials, so it stays off until you enable it,
+    | and it registers only when the application environment is "local".
     | Tool calls still require an authenticated, authorized user unless
     | auth.stdio_required is false. That flag does not affect HTTP. OAuth
     | route registration stays off until you enable it, because dynamic

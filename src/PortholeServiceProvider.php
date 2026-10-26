@@ -53,10 +53,7 @@ class PortholeServiceProvider extends ServiceProvider
         }
 
         $this->registerHttpServer();
-
-        if (config('porthole.stdio.enabled') === true) {
-            Mcp::local((string) config('porthole.stdio.handle', 'porthole'), PortholeServer::class);
-        }
+        $this->registerLocalStdio();
 
         if (config('porthole.oauth.enabled') === true && class_exists(Passport::class)) {
             Mcp::oauthRoutes();
@@ -95,5 +92,20 @@ class PortholeServiceProvider extends ServiceProvider
             ...$middleware,
             ...($route->action['middleware'] ?? []),
         ];
+    }
+
+    private function registerLocalStdio(): void
+    {
+        if (config('porthole.stdio.enabled') !== true) {
+            return;
+        }
+
+        if (! $this->app->environment('local')) {
+            Log::warning('Porthole stdio was not registered because the application environment is not local.');
+
+            return;
+        }
+
+        Mcp::local((string) config('porthole.stdio.handle', 'porthole'), PortholeServer::class);
     }
 }

@@ -78,7 +78,7 @@ Porthole speaks MCP. Your editor or CLI agent is the MCP *client*. There are two
 
 | Transport | How the client reaches Porthole | Typical auth |
 | --- | --- | --- |
-| **Local stdio** | Client spawns `php artisan mcp:start porthole` in your app | Trust the machine, or disable auth for that local env |
+| **Local stdio** | Client spawns `php artisan mcp:start porthole` in your app. Registered only when the Laravel environment is `local`. | Trust the machine, or disable auth for that local env |
 | **HTTP** | Client calls `https://your-app.test/mcp/porthole` | Sanctum bearer token, or Passport OAuth |
 
 Pasting a stdio JSON block into an MCP settings file does **not** open a browser login. Cursor (and most other tools) start a local process and talk over stdin/stdout. Auth still runs inside each tool call.
@@ -96,6 +96,8 @@ Pasting a stdio JSON block into an MCP settings file does **not** open a browser
 ### App setup by transport
 
 **Local stdio (laptop / same machine as the app)**
+
+Stdio registers only when `APP_ENV=local` and `stdio.enabled` is true. Staging, production, and any other environment ignore the flag.
 
 ```php
 'auth' => [
@@ -439,7 +441,7 @@ Open the MCP settings UI and paste a standard `mcpServers` JSON block (stdio or 
 
 | Symptom | Likely cause |
 | --- | --- |
-| `mcp:start porthole` unknown / server missing | `stdio.enabled` is still false in `config/porthole.php` |
+| `mcp:start porthole` unknown / server missing | `stdio.enabled` is false, or the app environment is not `local` |
 | `artisan` not found | Wrong `cwd` / missing absolute path |
 | `Authentication is required to read Porthole data` | Stdio with no user; set `auth.stdio_required` to false locally, or switch to HTTP + token |
 | HTTP 404 on `/mcp/porthole` | `auth.http_required` is true and `auth.middleware` is empty, so the route was not registered |
