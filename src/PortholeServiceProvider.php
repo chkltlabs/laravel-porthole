@@ -7,9 +7,11 @@ namespace Chkltlabs\Porthole;
 use Chkltlabs\Porthole\Horizon\ArtisanHorizonOperator;
 use Chkltlabs\Porthole\Horizon\HorizonOperator;
 use Chkltlabs\Porthole\Http\Middleware\RequirePortholeAuthentication;
+use Chkltlabs\Porthole\Support\AuthFlags;
 use Chkltlabs\Porthole\Support\Redactor;
 use Chkltlabs\Porthole\Telescope\RepositoryTelescopeOperator;
 use Chkltlabs\Porthole\Telescope\TelescopeOperator;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Facades\Mcp;
 use Laravel\Passport\Passport;
@@ -42,12 +44,37 @@ class PortholeServiceProvider extends ServiceProvider
             return;
         }
 
+        $this->registerHttpServer();
+
+        if (config('porthole.stdio.enabled') === true) {
+            Mcp::local((string) config('porthole.stdio.handle', 'porthole'), PortholeServer::class);
+        }
+
+        if (config('porthole.oauth.enabled') === true && class_exists(Passport::class)) {
+            Mcp::oauthRoutes();
+        }
+    }
+
+    private function registerHttpServer(): void
+    {
         $middleware = array_values(array_filter(
             (array) config('porthole.auth.middleware', []),
             fn (mixed $entry): bool => is_string($entry) && $entry !== '',
         ));
 
-        if (config('porthole.auth.required', true) === true) {
+        if (AuthFlags::httpRequired() && $middleware === []) {
+            Log::warning('Porthole HTTP server was not registered because authentication is required and PORTHOLE_AUTH_MIDDLEWARE is empty.');
+
+            return;
+        }
+
+        $throttle = trim((string) config('porthole.auth.throttle', '60,1'));
+
+        if ($throttle !== '') {
+            $middleware[] = 'throttle:'.$throttle;
+        }
+
+        if (AuthFlags::httpRequired()) {
             $middleware[] = RequirePortholeAuthentication::class;
         }
 
@@ -60,13 +87,5 @@ class PortholeServiceProvider extends ServiceProvider
             ...$middleware,
             ...($route->action['middleware'] ?? []),
         ];
-
-        if (config('porthole.stdio.enabled') === true) {
-            Mcp::local((string) config('porthole.stdio.handle', 'porthole'), PortholeServer::class);
-        }
-
-        if (config('porthole.oauth.enabled') === true && class_exists(Passport::class)) {
-            Mcp::oauthRoutes();
-        }
     }
 }

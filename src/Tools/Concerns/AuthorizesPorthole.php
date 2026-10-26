@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Chkltlabs\Porthole\Tools\Concerns;
 
+use Chkltlabs\Porthole\Support\AuthFlags;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -12,7 +13,7 @@ trait AuthorizesPorthole
 {
     protected function denied(Request $request, string $sourceGate): ?Response
     {
-        if (config('porthole.auth.required', true) !== true) {
+        if (! $this->authenticationRequired()) {
             return null;
         }
 
@@ -49,6 +50,28 @@ trait AuthorizesPorthole
         }
 
         return Response::error('Destructive tools are disabled.');
+    }
+
+    private function authenticationRequired(): bool
+    {
+        return $this->usesHttpTransport()
+            ? AuthFlags::httpRequired()
+            : AuthFlags::stdioRequired();
+    }
+
+    private function usesHttpTransport(): bool
+    {
+        if (! app()->bound('request')) {
+            return false;
+        }
+
+        $route = request()->route();
+
+        if ($route === null) {
+            return false;
+        }
+
+        return trim((string) $route->uri(), '/') === trim((string) config('porthole.path', 'mcp/porthole'), '/');
     }
 
     private function guard(): ?string

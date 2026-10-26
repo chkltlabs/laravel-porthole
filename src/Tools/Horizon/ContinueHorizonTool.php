@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Chkltlabs\Porthole\Tools\Horizon;
 
+use Chkltlabs\Porthole\Horizon\HorizonCommandFailed;
 use Chkltlabs\Porthole\Horizon\HorizonOperator;
 use Chkltlabs\Porthole\Support\InstalledPackage;
 use Chkltlabs\Porthole\Tools\Concerns\AuthorizesPorthole;
@@ -41,7 +42,11 @@ class ContinueHorizonTool extends Tool
             return $denied;
         }
 
-        app(HorizonOperator::class)->resume();
+        try {
+            app(HorizonOperator::class)->resume();
+        } catch (HorizonCommandFailed $exception) {
+            return Response::error($exception->getMessage());
+        }
 
         return Response::structured([
             'resumed' => true,

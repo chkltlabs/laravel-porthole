@@ -8,6 +8,8 @@ use Chkltlabs\Porthole\Tests\PortholeUser;
 use Chkltlabs\Porthole\Tools\Horizon\HorizonJobsTool;
 use Chkltlabs\Porthole\Tools\Horizon\HorizonStatusTool;
 use Chkltlabs\Porthole\Tools\Horizon\PauseHorizonTool;
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Horizon\Contracts\JobRepository;
 use Laravel\Horizon\Contracts\MasterSupervisorRepository;
@@ -128,6 +130,56 @@ it('pauses horizon only after writes are enabled', function () {
     expect($operator->pauses)->toBe(1);
 });
 
+it('reports a horizon pause failure when artisan exits non-zero', function () {
+    config(['porthole.writes_enabled' => true]);
+    bindArtisan(exitCode: 1, output: 'no masters');
+
+    PortholeServer::actingAs(new PortholeUser)
+        ->tool(PauseHorizonTool::class)
+        ->assertSee('no masters');
+});
+
+it('pauses horizon when artisan exits cleanly', function () {
+    config(['porthole.writes_enabled' => true]);
+    bindArtisan(exitCode: 0, output: '');
+
+    PortholeServer::actingAs(new PortholeUser)
+        ->tool(PauseHorizonTool::class)
+        ->assertOk()
+        ->assertSee('paused');
+});
+
+it('skips tool gates on stdio when stdio auth is disabled', function () {
+    config([
+        'porthole.writes_enabled' => true,
+        'porthole.auth.http_required' => true,
+        'porthole.auth.stdio_required' => false,
+    ]);
+
+    $operator = new class implements HorizonOperator
+    {
+        public int $pauses = 0;
+
+        public function pause(): void
+        {
+            $this->pauses++;
+        }
+
+        public function resume(): void {}
+
+        public function retryFailedJob(string $id): bool
+        {
+            return false;
+        }
+    };
+
+    app()->instance(HorizonOperator::class, $operator);
+
+    app(PauseHorizonTool::class)->handle(new Request);
+
+    expect($operator->pauses)->toBe(1);
+});
+
 it('does not call the horizon operator when a write tool is invoked while writes are disabled', function () {
     $operator = new class implements HorizonOperator
     {
@@ -153,3 +205,42 @@ it('does not call the horizon operator when a write tool is invoked while writes
 
     expect($operator->pauses)->toBe(0);
 });
+
+function bindArtisan(int $exitCode, string $output): void
+{
+    app()->instance(Kernel::class, new class($exitCode, $output) implements Kernel
+    {
+        public function __construct(private int $exitCode, private string $output) {}
+
+        public function bootstrap() {}
+
+        public function handle($input, $output = null)
+        {
+            return $this->exitCode;
+        }
+
+        public function call($command, array $parameters = [], $outputBuffer = null)
+        {
+            return $this->exitCode;
+        }
+
+        public function queue($command, array $parameters = [])
+        {
+            return null;
+        }
+
+        public function all()
+        {
+            return [];
+        }
+
+        public function output()
+        {
+            return $this->output;
+        }
+
+        public function terminate($input, $status) {}
+    });
+
+    Artisan::clearResolvedInstances();
+}
