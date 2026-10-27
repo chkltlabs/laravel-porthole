@@ -52,7 +52,7 @@ final class Redactor
     public function scrub(string $value): string
     {
         $stripped = preg_replace_callback(
-            '/\bhttps?:\/\/[^\s?]*\?[^\s]*|(?<![\w])\/[\w.~%!$&\'()*+,;=:@\/-]*\?[^\s]*/i',
+            '/\bhttps?:\/\/[^\s?]*\?[^\s]*/i',
             static function (array $match): string {
                 $query = strpos($match[0], '?');
 
@@ -62,6 +62,35 @@ final class Redactor
         ) ?? $value;
 
         return $this->truncate($stripped);
+    }
+
+    /**
+     * @param  list<string>  $keys
+     */
+    public function redactKeys(mixed $value, array $keys, int $depth = 0): mixed
+    {
+        if ($depth > $this->maxDepth || ! is_array($value)) {
+            return $value;
+        }
+
+        $names = array_map(
+            fn (string $key): string => str_replace(['-', ' '], '_', strtolower($key)),
+            $keys,
+        );
+
+        $redacted = [];
+
+        foreach ($value as $key => $item) {
+            if (is_string($key) && in_array(str_replace(['-', ' '], '_', strtolower($key)), $names, true)) {
+                $redacted[$key] = '[redacted]';
+
+                continue;
+            }
+
+            $redacted[$key] = $this->redactKeys($item, $keys, $depth + 1);
+        }
+
+        return $redacted;
     }
 
     public function truncate(string $value): string
@@ -76,19 +105,6 @@ final class Redactor
     public function isSensitiveKey(string $key): bool
     {
         $normalized = str_replace(['-', ' '], '_', strtolower($key));
-
-        if (in_array($normalized, [
-            'code',
-            'state',
-            'nonce',
-            'code_verifier',
-            'code_challenge',
-            'redirect_uri',
-            'redirect_url',
-            'return_url',
-        ], true)) {
-            return true;
-        }
 
         foreach ([
             'password',

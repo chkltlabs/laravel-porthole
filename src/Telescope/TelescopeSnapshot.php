@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Chkltlabs\Porthole\Telescope;
 
+use Chkltlabs\Porthole\Support\PackageRoutes;
 use Chkltlabs\Porthole\Support\Redactor;
 use Chkltlabs\Porthole\Support\ResultLimit;
 use Laravel\Telescope\Contracts\EntriesRepository;
@@ -13,7 +14,10 @@ use Laravel\Telescope\Telescope;
 
 final class TelescopeSnapshot
 {
-    public function __construct(private Redactor $redactor) {}
+    public function __construct(
+        private Redactor $redactor,
+        private PackageRoutes $routes,
+    ) {}
 
     /**
      * @return list<array<string, mixed>>
@@ -118,6 +122,24 @@ final class TelescopeSnapshot
 
         $redacted = $this->redactor->redact($content);
 
+        if (! is_array($redacted)) {
+            return [];
+        }
+
+        $uri = $redacted['uri'] ?? null;
+
+        if (is_string($uri) && $this->routes->contains($uri)) {
+            $withParameters = $this->redactor->redactKeys($redacted, PackageRoutes::PARAMETER_NAMES);
+
+            if (! is_array($withParameters)) {
+                return $redacted;
+            }
+
+            $withParameters['uri'] = $this->routeUri($uri);
+
+            return $withParameters;
+        }
+
         return is_array($redacted) ? $redacted : [];
     }
 
@@ -130,7 +152,7 @@ final class TelescopeSnapshot
         $summary = match ($type) {
             'request' => [
                 'method' => $content['method'] ?? null,
-                'uri' => isset($content['uri']) && is_string($content['uri']) ? $this->redactor->scrub($content['uri']) : null,
+                'uri' => $this->routeUri(is_string($content['uri'] ?? null) ? $content['uri'] : null),
                 'status' => $content['response_status'] ?? null,
                 'duration_ms' => $content['duration'] ?? null,
             ],
@@ -157,7 +179,7 @@ final class TelescopeSnapshot
             ],
             'client_request' => [
                 'method' => $content['method'] ?? null,
-                'uri' => isset($content['uri']) && is_string($content['uri']) ? $this->redactor->scrub($content['uri']) : null,
+                'uri' => $this->routeUri(is_string($content['uri'] ?? null) ? $content['uri'] : null),
                 'status' => $content['response_status'] ?? null,
                 'duration_ms' => $content['duration'] ?? null,
             ],
@@ -167,6 +189,23 @@ final class TelescopeSnapshot
         };
 
         return array_filter($summary, fn (mixed $value): bool => $value !== null);
+    }
+
+    private function routeUri(?string $uri): ?string
+    {
+        if ($uri === null) {
+            return null;
+        }
+
+        $scrubbed = $this->redactor->scrub($uri);
+
+        if (! $this->routes->contains($scrubbed)) {
+            return $scrubbed;
+        }
+
+        $query = strpos($scrubbed, '?');
+
+        return $query === false ? $scrubbed : substr($scrubbed, 0, $query);
     }
 
     private function repository(): EntriesRepository
