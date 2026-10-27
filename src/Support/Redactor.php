@@ -52,16 +52,11 @@ final class Redactor
     public function scrub(string $value): string
     {
         $stripped = preg_replace_callback(
-            '/\bhttps?:\/\/[^\s]+/i',
+            '/\bhttps?:\/\/[^\s?]*\?[^\s]*|(?<![\w])\/[\w.~%!$&\'()*+,;=:@\/-]*\?[^\s]*/i',
             static function (array $match): string {
-                $url = $match[0];
-                $query = strpos($url, '?');
+                $query = strpos($match[0], '?');
 
-                if ($query === false) {
-                    return $url;
-                }
-
-                return substr($url, 0, $query);
+                return $query === false ? $match[0] : substr($match[0], 0, $query);
             },
             $value,
         ) ?? $value;
@@ -81,6 +76,19 @@ final class Redactor
     public function isSensitiveKey(string $key): bool
     {
         $normalized = str_replace(['-', ' '], '_', strtolower($key));
+
+        if (in_array($normalized, [
+            'code',
+            'state',
+            'nonce',
+            'code_verifier',
+            'code_challenge',
+            'redirect_uri',
+            'redirect_url',
+            'return_url',
+        ], true)) {
+            return true;
+        }
 
         foreach ([
             'password',

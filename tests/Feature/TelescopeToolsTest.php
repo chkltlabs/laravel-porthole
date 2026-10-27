@@ -53,6 +53,55 @@ it('lists a query summary without bindings', function () {
         ->assertDontSee('hunter2');
 });
 
+it('strips oauth query parameters from a telescope request', function () {
+    $entry = new EntryResult(
+        'entry-oauth',
+        1,
+        'batch-oauth',
+        'request',
+        'family-oauth',
+        [
+            'method' => 'GET',
+            'uri' => '/porthole/oauth/authorize?client_id=public&code=auth-code&redirect_uri=https://app.test/callback&state=state-secret',
+            'response_status' => 302,
+            'duration' => 12,
+            'payload' => [
+                'client_id' => 'public',
+                'code' => 'auth-code',
+                'redirect_uri' => 'https://app.test/callback',
+                'state' => 'state-secret',
+                'code_verifier' => 'verifier-secret',
+                'scope' => 'mcp:use',
+            ],
+        ],
+        now(),
+    );
+
+    $repository = Mockery::mock(EntriesRepository::class);
+    $repository->shouldReceive('get')->andReturn(collect([$entry]));
+    $repository->shouldReceive('find')->andReturn($entry);
+    app()->instance(EntriesRepository::class, $repository);
+
+    PortholeServer::actingAs(new PortholeUser)
+        ->tool(ListTelescopeEntriesTool::class, ['type' => 'request'])
+        ->assertOk()
+        ->assertSee('/porthole/oauth/authorize')
+        ->assertDontSee('auth-code')
+        ->assertDontSee('state-secret')
+        ->assertDontSee('https://app.test/callback');
+
+    PortholeServer::actingAs(new PortholeUser)
+        ->tool(ShowTelescopeEntryTool::class, ['id' => 'entry-oauth'])
+        ->assertOk()
+        ->assertSee('public')
+        ->assertSee('mcp:use')
+        ->assertSee('[redacted]')
+        ->assertDontSee('auth-code')
+        ->assertDontSee('verifier-secret')
+        ->assertDontSee('state-secret')
+        ->assertDontSee('https://app.test/callback');
+});
+
 it('shows an entry without bindings, secrets, or trace arguments', function () {
     $response = PortholeServer::actingAs(new PortholeUser)
         ->tool(ShowTelescopeEntryTool::class, ['id' => 'entry-1', 'limit' => 5]);

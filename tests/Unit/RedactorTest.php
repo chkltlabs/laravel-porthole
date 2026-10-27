@@ -29,5 +29,22 @@ it('redacts sensitive keys and masks sql literals', function () {
         ->and($redactor->redactSql('select * from accounts where user_id = 12345'))
         ->toBe('select * from accounts where user_id = ?')
         ->and($redactor->scrub('https://hooks.test/plaid?token=secret'))
-        ->toBe('https://hooks.test/plaid');
+        ->toBe('https://hooks.test/plaid')
+        ->and($redactor->scrub('/porthole/oauth/authorize?code=auth-code&redirect_uri=https://app.test/callback&state=state-secret'))
+        ->toBe('/porthole/oauth/authorize')
+        ->and($redactor->redact([
+            'client_id' => 'public',
+            'code' => 'auth-code',
+            'redirect_uri' => 'https://app.test/callback',
+            'state' => 'state-secret',
+            'code_verifier' => 'verifier',
+            'scope' => 'mcp:use',
+        ]))->toBe([
+            'client_id' => 'public',
+            'code' => '[redacted]',
+            'redirect_uri' => '[redacted]',
+            'state' => '[redacted]',
+            'code_verifier' => '[redacted]',
+            'scope' => 'mcp:use',
+        ]);
 });

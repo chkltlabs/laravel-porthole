@@ -499,7 +499,7 @@ Open the MCP settings UI and paste a standard `mcpServers` JSON block (stdio or 
 
 Pulse periods are `1h`, `6h`, `24h`, and `7d`.
 
-Horizon job payloads are reduced to the display name. Telescope query bindings, cookies, authorization headers, and trace arguments are removed. Sensitive array keys such as `password`, `token`, `secret`, `email`, `account_number`, `routing_number`, and `private_key` are replaced with `[redacted]`. Quoted SQL strings and unquoted numeric literals are masked. URLs lose their query strings, including in exception, log, and job-exception text. This is not a tenant boundary: a caller who can read a source can still see that source's operational data.
+Horizon job payloads are reduced to the display name. Telescope query bindings, cookies, authorization headers, and trace arguments are removed. Sensitive array keys such as `password`, `token`, `secret`, `email`, `account_number`, `routing_number`, and `private_key` are replaced with `[redacted]`. OAuth parameter names `code`, `state`, `nonce`, `code_verifier`, `code_challenge`, `redirect_uri`, and `return_url` are too. Quoted SQL strings and unquoted numeric literals are masked. Absolute URLs and request paths lose their query strings, including in exception, log, and job-exception text. This is not a tenant boundary: a caller who can read a source can still see that source's operational data.
 
 ## Writes
 
