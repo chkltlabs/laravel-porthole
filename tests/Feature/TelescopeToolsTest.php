@@ -3,11 +3,13 @@
 declare(strict_types=1);
 
 use Chkltlabs\Porthole\PortholeServer;
+use Chkltlabs\Porthole\PortholeServiceProvider;
 use Chkltlabs\Porthole\Telescope\TelescopeOperator;
 use Chkltlabs\Porthole\Tests\PortholeUser;
 use Chkltlabs\Porthole\Tools\Telescope\ListTelescopeEntriesTool;
 use Chkltlabs\Porthole\Tools\Telescope\PruneTelescopeEntriesTool;
 use Chkltlabs\Porthole\Tools\Telescope\ShowTelescopeEntryTool;
+use Illuminate\Routing\RouteCollection;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Telescope\Contracts\EntriesRepository;
 use Laravel\Telescope\EntryResult;
@@ -54,6 +56,14 @@ it('lists a query summary without bindings', function () {
 });
 
 it('strips oauth query parameters from a telescope request', function () {
+    config([
+        'porthole.oauth.enabled' => true,
+        'porthole.oauth.allow_non_local' => true,
+    ]);
+    app()->instance('env', 'production');
+    app('router')->setRoutes(new RouteCollection);
+    app()->getProvider(PortholeServiceProvider::class)->boot();
+
     $entry = new EntryResult(
         'entry-oauth',
         1,
@@ -100,6 +110,47 @@ it('strips oauth query parameters from a telescope request', function () {
         ->assertDontSee('verifier-secret')
         ->assertDontSee('state-secret')
         ->assertDontSee('https://app.test/callback');
+});
+
+it('keeps query parameters on application routes', function () {
+    $entry = new EntryResult(
+        'entry-app',
+        1,
+        'batch-app',
+        'request',
+        'family-app',
+        [
+            'method' => 'GET',
+            'uri' => '/billing/pay?code=auth-code&redirect_uri=https://app.test/callback&state=state-secret',
+            'response_status' => 200,
+            'duration' => 8,
+            'payload' => [
+                'code' => 'auth-code',
+                'redirect_uri' => 'https://app.test/callback',
+                'state' => 'state-secret',
+            ],
+        ],
+        now(),
+    );
+
+    $repository = Mockery::mock(EntriesRepository::class);
+    $repository->shouldReceive('get')->andReturn(collect([$entry]));
+    $repository->shouldReceive('find')->andReturn($entry);
+    app()->instance(EntriesRepository::class, $repository);
+
+    PortholeServer::actingAs(new PortholeUser)
+        ->tool(ListTelescopeEntriesTool::class, ['type' => 'request'])
+        ->assertOk()
+        ->assertSee('auth-code')
+        ->assertSee('state-secret')
+        ->assertSee('https://app.test/callback');
+
+    PortholeServer::actingAs(new PortholeUser)
+        ->tool(ShowTelescopeEntryTool::class, ['id' => 'entry-app'])
+        ->assertOk()
+        ->assertSee('auth-code')
+        ->assertSee('state-secret')
+        ->assertSee('https://app.test/callback');
 });
 
 it('shows an entry without bindings, secrets, or trace arguments', function () {
