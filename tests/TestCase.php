@@ -11,6 +11,13 @@ use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra
 {
+    /**
+     * Config applied before providers boot. Set this, then call refreshApplication().
+     *
+     * @var array<string, mixed>
+     */
+    public array $bootConfig = [];
+
     protected function getPackageProviders($app): array
     {
         return [
@@ -23,5 +30,9 @@ abstract class TestCase extends Orchestra
     {
         $app['config']->set('database.default', 'testing');
         $app['config']->set('porthole.auth.middleware', [ValidatePostSize::class]);
+
+        foreach ($this->bootConfig as $key => $value) {
+            $app['config']->set($key, $value);
+        }
     }
 }

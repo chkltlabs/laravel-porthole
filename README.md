@@ -67,6 +67,8 @@ Sanctum apps can use `auth:sanctum` instead. Set `auth.throttle` to an empty str
 
 OAuth stays off until `oauth.enabled` is true and the app is running in `local` (or `oauth.allow_non_local` is true). Porthole then serves its own authorization server at `/porthole/oauth`. That issuer has its own client table and the `mcp:use` scope. It does not register Passport routes, call `Passport::tokensCan()`, or change `ignoreRoutes()` and `$user->createToken()`. A token from this flow is not an application API token.
 
+`laravel/mcp` adds an `mcp:use` scope to Passport on every boot when Passport is installed, including when Porthole OAuth is off. Porthole removes that scope again before the application handles a request. A scope the application already registered as `mcp:use` stays.
+
 The MCP client URL stays `https://your-app.test/mcp/porthole`. The client discovers `/porthole/oauth` from the `401` response. Do not put the issuer in the client's `url` field, and do not send it to the application's Passport server.
 
 Dynamic client registration stays off until `oauth.dynamic_registration` is true. With it off, create a public client with `php artisan porthole:oauth-client`. Enable OAuth, then run `php artisan migrate`. Porthole loads its OAuth migrations in that mode. Do not also publish `porthole-migrations` into `database/migrations`, or migrate runs the same tables twice. When OAuth is on, `auth.middleware` can stay empty. Do not put `auth:api` in front of these tokens.

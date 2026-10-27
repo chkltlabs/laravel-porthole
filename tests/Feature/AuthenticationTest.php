@@ -154,6 +154,46 @@ it('does not register oauth routes outside local unless that deploy explicitly a
         ->and(app('router')->has('porthole.oauth.authorize'))->toBeFalse();
 });
 
+it('leaves the application passport scopes unchanged when oauth is off', function () {
+    require_once __DIR__.'/../Fixtures/Passport.php';
+
+    Passport::$scopes = ['mobile' => 'Mobile access'];
+
+    $this->refreshApplication();
+
+    expect(Passport::$scopes)->toBe(['mobile' => 'Mobile access']);
+});
+
+it('leaves the application passport scopes unchanged when oauth is on', function () {
+    require_once __DIR__.'/../Fixtures/Passport.php';
+
+    Passport::$scopes = ['mobile' => 'Mobile access'];
+    $this->bootConfig = [
+        'porthole.oauth.enabled' => true,
+        'porthole.oauth.allow_non_local' => true,
+    ];
+
+    $this->refreshApplication();
+
+    expect(Passport::$scopes)->toBe(['mobile' => 'Mobile access']);
+});
+
+it('keeps an mcp:use scope the application already registered', function () {
+    require_once __DIR__.'/../Fixtures/Passport.php';
+
+    Passport::$scopes = [
+        'mobile' => 'Mobile access',
+        'mcp:use' => 'Staff MCP access',
+    ];
+
+    $this->refreshApplication();
+
+    expect(Passport::$scopes)->toBe([
+        'mobile' => 'Mobile access',
+        'mcp:use' => 'Staff MCP access',
+    ]);
+});
+
 it('registers the porthole issuer without touching the application passport path', function () {
     require_once __DIR__.'/../Fixtures/Passport.php';
 
