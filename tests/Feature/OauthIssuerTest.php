@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
+use Laravel\Mcp\Enums\ProtocolVersion;
+use Laravel\Pulse\Contracts\Storage;
 
 beforeEach(function () {
     $database = tempnam(sys_get_temp_dir(), 'porthole-oauth');
@@ -197,6 +199,61 @@ it('registers the http server with the porthole token middleware when auth middl
         ->and($route->middleware())->toContain(AuthenticatePortholeAccessToken::class);
 });
 
+it('runs a tool for an oauth bearer token', function (?string $guard) {
+    $token = portholeAccessToken();
+
+    if ($guard !== null) {
+        config([
+            'auth.guards.staff' => [
+                'driver' => 'session',
+                'provider' => 'users',
+            ],
+            'porthole.auth.guard' => $guard,
+        ]);
+    }
+
+    Auth::forgetGuards();
+    test()->flushSession();
+
+    Gate::define('viewPulse', fn (): bool => true);
+
+    $storage = Mockery::mock(Storage::class);
+    $storage->shouldReceive('aggregateTotal')->andReturn(2);
+    app()->instance(Storage::class, $storage);
+
+    $version = ProtocolVersion::LATEST->value;
+
+    $response = test()->withToken($token)
+        ->withHeaders([
+            'MCP-Protocol-Version' => $version,
+            'Mcp-Method' => 'tools/call',
+            'Mcp-Name' => 'pulse-health',
+        ])
+        ->postJson('/mcp/porthole', [
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => 'pulse-health',
+                'arguments' => [],
+                '_meta' => [
+                    'io.modelcontextprotocol/protocolVersion' => $version,
+                    'io.modelcontextprotocol/clientCapabilities' => [],
+                ],
+            ],
+        ]);
+
+    $response->assertOk();
+
+    expect($response->getContent())
+        ->not->toContain('Authentication is required to read Porthole data.')
+        ->and($response->getContent())->toContain('exceptions_1h')
+        ->and($response->getContent())->toContain('"isError":false');
+})->with([
+    'default guard' => [null],
+    'named guard' => ['staff'],
+]);
+
 it('sends a guest from the authorization endpoint to the login route', function () {
     $registered = $this->postJson('/porthole/oauth/register', [
         'client_name' => 'Cursor',
@@ -212,3 +269,46 @@ it('sends a guest from the authorization endpoint to the login route', function 
         'state' => 'state-1',
     ]))->assertRedirect('/login');
 });
+
+function portholeAccessToken(): string
+{
+    $registered = test()->postJson('/porthole/oauth/register', [
+        'client_name' => 'Cursor',
+        'redirect_uris' => ['http://127.0.0.1:9999/callback'],
+    ])->assertCreated()->json();
+
+    $verifier = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+    $challenge = rtrim(strtr(base64_encode(hash('sha256', $verifier, true)), '+/', '-_'), '=');
+
+    $consent = test()->actingAs(new PortholeUser, 'web')->get('/porthole/oauth/authorize?'.http_build_query([
+        'response_type' => 'code',
+        'client_id' => $registered['client_id'],
+        'redirect_uri' => 'http://127.0.0.1:9999/callback',
+        'code_challenge' => $challenge,
+        'code_challenge_method' => 'S256',
+        'state' => 'state-1',
+        'scope' => 'mcp:use',
+    ]));
+
+    $consent->assertOk();
+    preg_match('/name="request" value="([^"]+)"/', $consent->getContent(), $matches);
+
+    $approved = test()->actingAs(new PortholeUser, 'web')->post('/porthole/oauth/authorize', [
+        'request' => $matches[1],
+        'decision' => 'approve',
+        '_token' => csrf_token(),
+    ]);
+
+    $approved->assertRedirect();
+    parse_str((string) parse_url((string) $approved->headers->get('Location'), PHP_URL_QUERY), $query);
+
+    $tokens = test()->post('/porthole/oauth/token', [
+        'grant_type' => 'authorization_code',
+        'client_id' => $registered['client_id'],
+        'code' => $query['code'],
+        'redirect_uri' => 'http://127.0.0.1:9999/callback',
+        'code_verifier' => $verifier,
+    ])->assertOk()->json();
+
+    return $tokens['access_token'];
+}
