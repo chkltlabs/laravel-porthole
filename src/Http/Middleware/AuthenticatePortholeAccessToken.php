@@ -8,6 +8,7 @@ use Chkltlabs\Porthole\Oauth\ResourceOwner;
 use Chkltlabs\Porthole\Oauth\Server;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 final class AuthenticatePortholeAccessToken
@@ -42,6 +43,10 @@ final class AuthenticatePortholeAccessToken
             return $response;
         }
 
+        $guard = config('porthole.auth.guard');
+        $guard = is_string($guard) && $guard !== '' ? $guard : null;
+
+        Auth::guard($guard)->setUser($user);
         $request->setUserResolver(fn (mixed $guard = null): mixed => $user);
 
         return $next($request);
