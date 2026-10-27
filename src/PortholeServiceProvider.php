@@ -14,6 +14,7 @@ use Chkltlabs\Porthole\Oauth\OauthIssuer;
 use Chkltlabs\Porthole\Support\AuthFlags;
 use Chkltlabs\Porthole\Support\ConfigExample;
 use Chkltlabs\Porthole\Support\EnvBoolean;
+use Chkltlabs\Porthole\Support\PassportScopes;
 use Chkltlabs\Porthole\Support\Redactor;
 use Chkltlabs\Porthole\Telescope\RepositoryTelescopeOperator;
 use Chkltlabs\Porthole\Telescope\TelescopeOperator;
@@ -35,6 +36,8 @@ class PortholeServiceProvider extends ServiceProvider
 
         $this->app->singleton(HorizonOperator::class, ArtisanHorizonOperator::class);
         $this->app->singleton(TelescopeOperator::class, RepositoryTelescopeOperator::class);
+
+        PassportScopes::preserve($this->app);
     }
 
     public function boot(): void
