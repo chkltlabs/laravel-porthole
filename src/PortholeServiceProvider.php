@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace Chkltlabs\Porthole;
 
 use Chkltlabs\Porthole\Console\CreateOauthClientCommand;
+use Chkltlabs\Porthole\Console\PublishConsentScreenCommand;
 use Chkltlabs\Porthole\Horizon\ArtisanHorizonOperator;
 use Chkltlabs\Porthole\Horizon\HorizonOperator;
 use Chkltlabs\Porthole\Http\Middleware\AuthenticatePortholeAccessToken;
 use Chkltlabs\Porthole\Http\Middleware\RequirePortholeAuthentication;
 use Chkltlabs\Porthole\Oauth\Discovery;
+use Chkltlabs\Porthole\Oauth\FilamentHost;
+use Chkltlabs\Porthole\Oauth\InstalledFilamentHost;
+use Chkltlabs\Porthole\Oauth\InstalledStarterKits;
 use Chkltlabs\Porthole\Oauth\OauthIssuer;
 use Chkltlabs\Porthole\Support\AuthFlags;
 use Chkltlabs\Porthole\Support\ConfigExample;
@@ -37,6 +41,9 @@ class PortholeServiceProvider extends ServiceProvider
         $this->app->singleton(HorizonOperator::class, ArtisanHorizonOperator::class);
         $this->app->singleton(TelescopeOperator::class, RepositoryTelescopeOperator::class);
 
+        $this->app->singleton(FilamentHost::class, InstalledFilamentHost::class);
+        $this->app->singleton(InstalledStarterKits::class, fn (): InstalledStarterKits => InstalledStarterKits::application());
+
         PassportScopes::preserve($this->app);
     }
 
@@ -51,7 +58,10 @@ class PortholeServiceProvider extends ServiceProvider
                 __DIR__.'/../database/migrations/2026_10_26_000000_create_porthole_oauth_tables.php' => database_path('migrations/2026_10_26_000000_create_porthole_oauth_tables.php'),
             ], 'porthole-migrations');
 
-            $this->commands([CreateOauthClientCommand::class]);
+            $this->commands([
+                CreateOauthClientCommand::class,
+                PublishConsentScreenCommand::class,
+            ]);
 
             if (! $this->app->runningUnitTests()) {
                 ConfigExample::publishIfMissing(
