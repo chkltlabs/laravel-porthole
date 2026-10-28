@@ -70,10 +70,11 @@ return [
     | Read tools are the only tools registered unless these flags are enabled.
     | "writes_enabled" allows pausing Horizon, resuming it, and retrying a
     | failed job. Pause, continue, and retry also require a passing
-    | mutateHorizon gate. "destructive_enabled" allows Telescope prune, and
-    | it is a separate opt-in so queue control does not also delete debug
-    | history. Outside the local environment, prune retention cannot drop
-    | below 24 hours.
+    | mutateHorizon gate. "destructive_enabled" allows Telescope prune and
+    | log file deletion, and it is a separate opt-in so queue control does
+    | not also delete debug history or log files. Outside the local
+    | environment, prune retention cannot drop below 24 hours. Log tools
+    | never append or edit log contents; the only write is deletion.
     |
     */
 
@@ -159,6 +160,25 @@ return [
         'max' => 100,
         'string' => 500,
         'trace_frames' => 8,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Log files
+    |--------------------------------------------------------------------------
+    |
+    | Caps for reading and searching files under storage/logs. Paths never
+    | leave that directory. Response bodies are truncated at bytes_max so a
+    | multi-gigabyte laravel.log is not returned whole.
+    |
+    */
+
+    'logs' => [
+        'lines' => 200,
+        'lines_max' => 2000,
+        'bytes_max' => 262144,
+        'search_matches' => 50,
+        'search_matches_max' => 200,
     ],
 
 ];
