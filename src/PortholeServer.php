@@ -39,7 +39,7 @@ use Laravel\Mcp\Server\Transport\StdioTransport;
     MARKDOWN)]
 class PortholeServer extends Server
 {
-    public const VERSION = '0.6.3';
+    public const VERSION = '0.7.0';
 
     public function __construct(Transport $transport)
     {
