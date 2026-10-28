@@ -100,8 +100,8 @@ it('uses a published consent view for either built-in screen', function () {
 
 it('keeps the filament consent form on the porthole approve route', function () {
     $root = dirname(__DIR__, 2);
-    $form = file_get_contents($root.'/resources/views/oauth/filament-form.blade.php');
-    $shell = file_get_contents($root.'/resources/views/oauth/filament.blade.php');
+    $form = file_get_contents($root.'/resources/starter-kits/filament/oauth/filament-form.blade.php');
+    $shell = file_get_contents($root.'/resources/starter-kits/filament/oauth/filament.blade.php');
     $page = file_get_contents($root.'/src/Oauth/Filament/ConsentPage.php');
     $controller = file_get_contents($root.'/src/Http/Controllers/Oauth/AuthorizeController.php');
 
@@ -113,8 +113,8 @@ it('keeps the filament consent form on the porthole approve route', function () 
         ->and($page)->toContain("'deny'")
         ->and($page)->toContain('livewireClickHandlerEnabled(false)')
         ->and($controller)->not->toContain('Filament\\')
-        ->and(file_get_contents($root.'/resources/views/oauth/livewire.blade.php'))->toContain('<x-layouts::auth')
-        ->and(file_get_contents($root.'/resources/views/oauth/livewire.blade.php'))->toContain('flux:button')
+        ->and(file_get_contents($root.'/resources/starter-kits/livewire/oauth/livewire.blade.php'))->toContain('<x-layouts::auth')
+        ->and(file_get_contents($root.'/resources/starter-kits/livewire/oauth/livewire.blade.php'))->toContain('flux:button')
         ->and(file_get_contents($root.'/resources/starter-kits/react/porthole-consent.tsx'))->toContain('name="decision"')
         ->and(file_get_contents($root.'/resources/starter-kits/react/porthole-consent.tsx'))->toContain('PortholeConsent.layout')
         ->and(file_get_contents($root.'/resources/starter-kits/vue/PortholeConsent.vue'))->toContain('variant="outline"')
@@ -210,6 +210,48 @@ it('publishes the chosen starter kit and can publish all of them', function () {
 
     expect(is_file($root.'/resources/js/pages/auth/PortholeConsent.svelte'))->toBeTrue()
         ->and(file_get_contents($root.'/resources/js/pages/auth/PortholeConsent.svelte'))->toContain('decision');
+});
+
+it('leaves starter-kit consent blades out of view:cache until that screen is installed', function () {
+    $this->bootConfig = [
+        'porthole.oauth.enabled' => true,
+        'porthole.oauth.allow_non_local' => true,
+    ];
+    $this->refreshApplication();
+
+    expect(app('view')->exists('porthole::oauth.consent'))->toBeTrue()
+        ->and(app('view')->exists('porthole::oauth.livewire'))->toBeFalse()
+        ->and(app('view')->exists('porthole::oauth.filament'))->toBeFalse()
+        ->and(app('view')->exists('porthole::oauth.filament-form'))->toBeFalse();
+
+    $this->artisan('view:cache')->assertSuccessful();
+});
+
+it('registers the livewire consent view when that kit is installed', function () {
+    $root = sys_get_temp_dir().'/porthole-livewire-views-'.uniqid();
+    starterKitFiles($root, ['livewire']);
+    $this->starterKits = new InstalledStarterKits($root, fluxInstalled: true);
+    $this->bootConfig = [
+        'porthole.oauth.enabled' => true,
+        'porthole.oauth.allow_non_local' => true,
+    ];
+    $this->refreshApplication();
+
+    expect(app('view')->exists('porthole::oauth.livewire'))->toBeTrue()
+        ->and(app('view')->exists('porthole::oauth.filament'))->toBeFalse();
+});
+
+it('registers the filament consent views when filament is available', function () {
+    $this->filamentHost = filamentHost(available: true, panels: ['app' => true], default: 'app');
+    $this->bootConfig = [
+        'porthole.oauth.enabled' => true,
+        'porthole.oauth.allow_non_local' => true,
+    ];
+    $this->refreshApplication();
+
+    expect(app('view')->exists('porthole::oauth.filament'))->toBeTrue()
+        ->and(app('view')->exists('porthole::oauth.filament-form'))->toBeTrue()
+        ->and(app('view')->exists('porthole::oauth.livewire'))->toBeFalse();
 });
 
 function starterKitFiles(string $root, array $kits): void

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Chkltlabs\Porthole\Tests;
 
+use Chkltlabs\Porthole\Oauth\FilamentHost;
+use Chkltlabs\Porthole\Oauth\InstalledStarterKits;
 use Chkltlabs\Porthole\PortholeServiceProvider;
 use Illuminate\Http\Middleware\ValidatePostSize;
 use Laravel\Mcp\Server\McpServiceProvider;
@@ -17,6 +19,16 @@ abstract class TestCase extends Orchestra
      * @var array<string, mixed>
      */
     public array $bootConfig = [];
+
+    /**
+     * Replaces the Filament host before the provider boots. Set this, then call refreshApplication().
+     */
+    public ?FilamentHost $filamentHost = null;
+
+    /**
+     * Replaces starter-kit detection before the provider boots. Set this, then call refreshApplication().
+     */
+    public ?InstalledStarterKits $starterKits = null;
 
     protected function getPackageProviders($app): array
     {
@@ -33,6 +45,14 @@ abstract class TestCase extends Orchestra
 
         foreach ($this->bootConfig as $key => $value) {
             $app['config']->set($key, $value);
+        }
+
+        if ($this->filamentHost instanceof FilamentHost) {
+            $app->instance(FilamentHost::class, $this->filamentHost);
+        }
+
+        if ($this->starterKits instanceof InstalledStarterKits) {
+            $app->instance(InstalledStarterKits::class, $this->starterKits);
         }
     }
 }

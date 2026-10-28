@@ -143,10 +143,29 @@ class PortholeServiceProvider extends ServiceProvider
         if (! $this->app->bound('porthole.oauth.migrations')) {
             $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
             $this->loadViewsFrom(__DIR__.'/../resources/views', 'porthole');
+            $this->registerInstalledConsentViews();
             $this->app->instance('porthole.oauth.migrations', true);
         }
 
         $this->app->make(OauthIssuer::class)->registerRoutes();
+    }
+
+    /**
+     * Filament and Livewire consent blades reference components the app may
+     * not have. They stay outside resources/views, which view:cache compiles
+     * whenever OAuth is registered, and are added only when that screen is installed.
+     */
+    private function registerInstalledConsentViews(): void
+    {
+        $screens = __DIR__.'/../resources/starter-kits';
+
+        if ($this->app->make(FilamentHost::class)->available()) {
+            $this->loadViewsFrom($screens.'/filament', 'porthole');
+        }
+
+        if ($this->app->make(InstalledStarterKits::class)->livewireInstalled()) {
+            $this->loadViewsFrom($screens.'/livewire', 'porthole');
+        }
     }
 
     private function oauthMode(): string
