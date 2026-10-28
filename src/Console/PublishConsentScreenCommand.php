@@ -144,7 +144,7 @@ final class PublishConsentScreenCommand extends Command
         if ($kit === 'filament') {
             $form = dirname($destination).'/filament-form.blade.php';
 
-            if (! $this->publish($screen->packageViewDirectory().'/filament-form.blade.php', $form)) {
+            if (! $this->publish($screen->starterKitDirectory().'/filament/oauth/filament-form.blade.php', $form)) {
                 return false;
             }
 
@@ -165,8 +165,8 @@ final class PublishConsentScreenCommand extends Command
         $kits = $screen->starterKitDirectory();
 
         return match ($kit) {
-            'filament' => $views.'/filament.blade.php',
-            'livewire' => $views.'/livewire.blade.php',
+            'filament' => $kits.'/filament/oauth/filament.blade.php',
+            'livewire' => $kits.'/livewire/oauth/livewire.blade.php',
             'react' => $kits.'/react/porthole-consent.tsx',
             'vue' => $kits.'/vue/PortholeConsent.vue',
             'svelte' => $kits.'/svelte/PortholeConsent.svelte',
