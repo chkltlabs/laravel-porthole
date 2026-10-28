@@ -3,6 +3,7 @@
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/chkltlabs/laravel-porthole.svg?style=flat-square)](https://packagist.org/packages/chkltlabs/laravel-porthole)
 [![Total Downloads](https://img.shields.io/packagist/dt/chkltlabs/laravel-porthole.svg?style=flat-square)](https://packagist.org/packages/chkltlabs/laravel-porthole)
 [![Tests](https://img.shields.io/github/actions/workflow/status/chkltlabs/laravel-porthole/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/chkltlabs/laravel-porthole/actions/workflows/tests.yml)
+[![Website](https://img.shields.io/badge/website-porthole.erikgratz.com-0ea5e9?style=flat-square)](https://porthole.erikgratz.com)
 
 Authenticated [Model Context Protocol](https://modelcontextprotocol.io) server for Laravel Horizon, Pulse, Telescope, and log files under `storage/logs`. Built on [laravel/mcp](https://github.com/laravel/mcp).
 
