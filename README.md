@@ -163,6 +163,29 @@ Sanctum apps use `auth:sanctum` and a Sanctum token in that same header.
 
 Enable OAuth and run `php artisan migrate`. The client calls `https://your-app.test/mcp/porthole` with no bearer header. A `401` points it at `/.well-known/oauth-protected-resource/mcp/porthole`, and that document names the `/porthole/oauth` issuer. The browser login uses the `web` guard and `viewPorthole`. The access token is stored in `porthole_oauth_tokens` and is accepted only by this package.
 
+The browser login route stays `oauth.login`, which defaults to `login`. Laravel's React, Vue, Svelte, and Livewire starter kits register that route through Fortify. A Filament panel login route is named `filament.{panel}.auth.login`.
+
+The consent screen follows the auth page the app already has. With none of the screens below installed, it is the plain page shipped with the package.
+
+- **Filament 4 or 5.** The page uses the panel simple layout when a panel is available. `oauth.filament` set to false keeps that layout off. `oauth.filament_panel` names the panel. When that key is null, a login route named `filament.{panel}.auth.login` supplies the panel id, and otherwise Porthole uses Filament's default panel. Filament 3 stays on the plain page: its simple page reads the view from a static property, and Filament 4 and 5 use an instance property.
+- **Livewire starter kit.** The page uses `<x-layouts::auth>`, `<x-auth-header>`, and Flux buttons, and it renders as soon as the kit is installed.
+- **React, Vue, and Svelte starter kits.** The page uses that kit's `auth/` Inertia layout and `Button` component. It renders after `php artisan porthole:consent-screen` publishes it. React's page is `resources/js/pages/auth/porthole-consent.tsx` (`auth/porthole-consent`). Vue's page is `resources/js/pages/auth/PortholeConsent.vue` and Svelte's page is `resources/js/pages/auth/PortholeConsent.svelte` (both `auth/PortholeConsent`). Rebuild the frontend after publishing one of those pages.
+
+When more than one of those screens is installed, set `oauth.consent` to `plain`, `filament`, `livewire`, `react`, `vue`, or `svelte`. With that key left null, Porthole uses the first available screen in this order: Filament, Livewire, React, Vue, Svelte.
+
+`php artisan porthole:consent-screen` publishes the detected screen so the app can edit it. With one screen installed, the command publishes that screen and remembers the choice. With more than one, it asks which to publish, or whether to publish all. Pass `--screen=` or `--all` when the terminal is not interactive. `--force` replaces an existing file. The command writes:
+
+| Screen | Published file |
+| --- | --- |
+| Plain | `resources/views/vendor/porthole/oauth/consent.blade.php` |
+| Filament | `resources/views/vendor/porthole/oauth/filament.blade.php` and `filament-form.blade.php` |
+| Livewire | `resources/views/vendor/porthole/oauth/livewire.blade.php` |
+| React | `resources/js/pages/auth/porthole-consent.tsx` |
+| Vue | `resources/js/pages/auth/PortholeConsent.vue` |
+| Svelte | `resources/js/pages/auth/PortholeConsent.svelte` |
+
+A published `resources/views/vendor/porthole/oauth/consent.blade.php` replaces every built-in screen. Delete that file to return to automatic selection. Every screen posts to `porthole.oauth.approve` with the CSRF token, `request`, and `decision` (`approve` or `deny`). Keep those fields when you edit a published screen.
+
 Leave `dynamic_registration` false unless you intend to expose `POST /porthole/oauth/register`. That route writes Porthole clients, not Passport clients. Leave `allow_non_local` false outside local development. Do not set `prefix` to `oauth`.
 
 Do not commit real tokens. Prefer env vars / your tool’s secret inputs.

@@ -144,6 +144,21 @@ return [
         'login' => 'login',
 
         /*
+        | Consent page. null uses a native screen when the app has one:
+        | Filament 4 or 5 simple layout, then the Livewire, React, Vue, and
+        | Svelte starter kits. filament set to false keeps Filament off that
+        | page. filament_panel names the panel. When it is null, a login route
+        | named filament.{panel}.auth.login supplies the id, then Filament's
+        | default panel. Filament 3 keeps the plain page.
+        | php artisan porthole:consent-screen publishes the screen so the app
+        | can edit it. consent names the screen when more than one is
+        | installed: plain, filament, livewire, react, vue, or svelte.
+        */
+        'filament' => null,
+        'filament_panel' => null,
+        'consent' => null,
+
+        /*
         | Extra redirect schemes for native MCP clients, comma-separated in
         | PORTHOLE_OAUTH_REDIRECT_SCHEMES. http is limited to loopback hosts.
         | https is allowed. The application's mcp.custom_schemes list is also

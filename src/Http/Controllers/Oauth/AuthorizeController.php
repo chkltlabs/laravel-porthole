@@ -4,25 +4,29 @@ declare(strict_types=1);
 
 namespace Chkltlabs\Porthole\Http\Controllers\Oauth;
 
+use Chkltlabs\Porthole\Oauth\ConsentScreen;
 use Chkltlabs\Porthole\Oauth\OauthException;
 use Chkltlabs\Porthole\Oauth\ResourceOwner;
 use Chkltlabs\Porthole\Oauth\Server;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
 
 final class AuthorizeController
 {
     public function __construct(
         private Server $server,
         private ResourceOwner $owners,
+        private ConsentScreen $consent,
     ) {}
 
-    public function show(Request $request): View|JsonResponse|RedirectResponse
+    public function show(Request $request): View|JsonResponse|RedirectResponse|Responsable
     {
         try {
             $pending = $this->server->parseAuthorize($request->query());
@@ -46,11 +50,21 @@ final class AuthorizeController
             'request' => $pending,
         ]);
 
-        return view('porthole::oauth.consent', [
-            'clientName' => $pending['client_name'],
-            'redirectHost' => (string) parse_url($pending['redirect_uri'], PHP_URL_HOST),
-            'requestId' => $requestId,
-        ]);
+        $resolved = $this->consent->resolve(
+            $pending['client_name'],
+            (string) parse_url($pending['redirect_uri'], PHP_URL_HOST),
+            $requestId,
+        );
+
+        if (isset($resolved['inertia']) && class_exists(Inertia::class)) {
+            return Inertia::render($resolved['inertia'], [
+                ...$resolved['data'],
+                'approveUrl' => route('porthole.oauth.approve'),
+                'csrf' => csrf_token(),
+            ]);
+        }
+
+        return view($resolved['view'], $resolved['data']);
     }
 
     public function approve(Request $request): JsonResponse|RedirectResponse

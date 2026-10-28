@@ -22,6 +22,9 @@
         "pestphp/pest": "^3.8|^4.1"
     },
     "suggest": {
+        "filament/filament": "Optional. Filament 4 or 5 renders the OAuth consent page with the panel's simple layout.",
+        "inertiajs/inertia-laravel": "Optional. React, Vue, and Svelte starter kits render the OAuth consent page through Inertia.",
+        "livewire/flux": "Optional. The Livewire starter kit renders the OAuth consent page with Flux.",
         "laravel/horizon": "Required to register the Horizon tools.",
         "laravel/pulse": "Required to register the Pulse tools.",
         "laravel/sanctum": "Bearer-token authentication for the HTTP MCP server.",

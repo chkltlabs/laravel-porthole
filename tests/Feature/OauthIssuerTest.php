@@ -140,7 +140,7 @@ it('issues a porthole access token that is not an application api token', functi
         'scope' => 'mcp:use',
     ]));
 
-    $consent->assertOk()->assertSee('127.0.0.1');
+    $consent->assertOk()->assertSee('127.0.0.1')->assertDontSee('fi-simple-layout', false);
 
     preg_match('/name="request" value="([^"]+)"/', $consent->getContent(), $matches);
 
@@ -253,6 +253,48 @@ it('runs a tool for an oauth bearer token', function (?string $guard) {
     'default guard' => [null],
     'named guard' => ['staff'],
 ]);
+
+it('serves a published consent screen in place of the built-in page', function () {
+    $path = resource_path('views/vendor/porthole/oauth/consent.blade.php');
+    $directory = dirname($path);
+
+    if (! is_dir($directory)) {
+        mkdir($directory, 0755, true);
+    }
+
+    file_put_contents($path, <<<'BLADE'
+<form method="POST" action="{{ route('porthole.oauth.approve') }}">
+@csrf
+<input type="hidden" name="request" value="{{ $requestId }}">
+<p>Published consent for {{ $clientName }}</p>
+<button type="submit" name="decision" value="approve">Approve</button>
+</form>
+BLADE);
+    app('view')->addNamespace('porthole', resource_path('views/vendor/porthole'));
+
+    try {
+        $registered = $this->postJson('/porthole/oauth/register', [
+            'client_name' => 'Cursor',
+            'redirect_uris' => ['http://127.0.0.1:9999/callback'],
+        ])->assertCreated()->json();
+
+        $this->actingAs(new PortholeUser, 'web')->get('/porthole/oauth/authorize?'.http_build_query([
+            'response_type' => 'code',
+            'client_id' => $registered['client_id'],
+            'redirect_uri' => 'http://127.0.0.1:9999/callback',
+            'code_challenge' => 'challenge-challenge-challenge-challenge-challenge',
+            'code_challenge_method' => 'S256',
+            'state' => 'state-1',
+            'scope' => 'mcp:use',
+        ]))->assertOk()
+            ->assertSee('Published consent for Cursor')
+            ->assertDontSee('fi-simple-layout', false);
+    } finally {
+        if (is_file($path)) {
+            unlink($path);
+        }
+    }
+});
 
 it('sends a guest from the authorization endpoint to the login route', function () {
     $registered = $this->postJson('/porthole/oauth/register', [
