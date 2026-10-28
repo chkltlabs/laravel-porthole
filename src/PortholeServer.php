@@ -10,6 +10,10 @@ use Chkltlabs\Porthole\Tools\Horizon\HorizonMetricsTool;
 use Chkltlabs\Porthole\Tools\Horizon\HorizonStatusTool;
 use Chkltlabs\Porthole\Tools\Horizon\PauseHorizonTool;
 use Chkltlabs\Porthole\Tools\Horizon\RetryFailedHorizonJobTool;
+use Chkltlabs\Porthole\Tools\Logs\DeleteLogFilesTool;
+use Chkltlabs\Porthole\Tools\Logs\ListLogFilesTool;
+use Chkltlabs\Porthole\Tools\Logs\ReadLogFileTool;
+use Chkltlabs\Porthole\Tools\Logs\SearchLogFilesTool;
 use Chkltlabs\Porthole\Tools\Pulse\PulseExceptionsTool;
 use Chkltlabs\Porthole\Tools\Pulse\PulseHealthTool;
 use Chkltlabs\Porthole\Tools\Pulse\PulseOverviewTool;
@@ -32,10 +36,11 @@ use Laravel\Mcp\Server\Transport\StdioTransport;
 #[Name('Laravel Porthole')]
 #[Version(self::VERSION)]
 #[Instructions(<<<'MARKDOWN'
-    Read Horizon, Pulse, and Telescope through authenticated tools.
+    Read Horizon, Pulse, Telescope, and Laravel log files through authenticated tools.
     Tools are read-only unless the host application enables writes.
     Horizon job payloads and Telescope query bindings are omitted.
-    A missing package omits that package's tools.
+    Log tools stay inside storage/logs and never append to log contents.
+    A missing package omits that package's tools. Log tools are always available.
     MARKDOWN)]
 class PortholeServer extends Server
 {
@@ -73,6 +78,10 @@ class PortholeServer extends Server
         ListTelescopeEntriesTool::class,
         ShowTelescopeEntryTool::class,
         PruneTelescopeEntriesTool::class,
+        ListLogFilesTool::class,
+        ReadLogFileTool::class,
+        SearchLogFilesTool::class,
+        DeleteLogFilesTool::class,
     ];
 
     protected array $resources = [];

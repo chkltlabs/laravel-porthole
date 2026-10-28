@@ -3,17 +3,18 @@
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/chkltlabs/laravel-porthole.svg?style=flat-square)](https://packagist.org/packages/chkltlabs/laravel-porthole)
 [![Total Downloads](https://img.shields.io/packagist/dt/chkltlabs/laravel-porthole.svg?style=flat-square)](https://packagist.org/packages/chkltlabs/laravel-porthole)
 [![Tests](https://img.shields.io/github/actions/workflow/status/chkltlabs/laravel-porthole/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/chkltlabs/laravel-porthole/actions/workflows/tests.yml)
+[![Website](https://img.shields.io/badge/website-porthole.erikgratz.com-0ea5e9?style=flat-square)](https://porthole.erikgratz.com)
 
-Authenticated [Model Context Protocol](https://modelcontextprotocol.io) server for Laravel Horizon, Pulse, and Telescope. Built on [laravel/mcp](https://github.com/laravel/mcp).
+Authenticated [Model Context Protocol](https://modelcontextprotocol.io) server for Laravel Horizon, Pulse, Telescope, and log files under `storage/logs`. Built on [laravel/mcp](https://github.com/laravel/mcp).
 
-Read tools are registered by default. Write tools stay unregistered until you opt in. Callers need an authenticated user who passes `viewPorthole`, plus the package gate for that source (`viewHorizon`, `viewPulse`, or `viewTelescope`). An undefined gate denies the call.
+Read tools are registered by default. Write tools stay unregistered until you opt in. Callers need an authenticated user who passes `viewPorthole`, plus the package gate for that source (`viewHorizon`, `viewPulse`, `viewTelescope`, or `viewLogs`). An undefined gate denies the call.
 
 ## Requirements
 
 - PHP 8.2+
 - Laravel 11.45, 12.41, or 13
 - `laravel/mcp` 1.x
-- At least one of `laravel/horizon`, `laravel/pulse`, or `laravel/telescope`
+- At least one of `laravel/horizon`, `laravel/pulse`, or `laravel/telescope` (log tools need none of these)
 
 ## Install
 
@@ -99,7 +100,7 @@ Pasting a stdio JSON block into an MCP settings file does **not** open a browser
 
 1. Restart the agent / reload MCP so the client picks up the new server.
 2. For **stdio**, the client runs `php artisan mcp:start porthole` from your Laravel app directory (set `cwd` or use absolute paths).
-3. The client lists tools. Read tools appear when Horizon, Pulse, and/or Telescope are installed.
+3. The client lists tools. Log tools always appear. Horizon, Pulse, and Telescope tools appear when those packages are installed.
 4. The first tool call checks `$request->user()` and the gates.
 5. On stdio there is normally **no logged-in user**, so you get `Authentication is required to read Porthole data` until you either:
    - set `auth.stdio_required` to false in `config/porthole.php` for that local app (HTTP stays authenticated), or
@@ -519,8 +520,13 @@ Open the MCP settings UI and paste a standard `mcpServers` JSON block (stdio or 
 | `pulse-servers` | Latest CPU, memory, and disk samples |
 | `telescope-list` | Entries by type, tag, batch, or family |
 | `telescope-show` | One entry and a capped slice of its batch |
+| `logs-list` | `.log` files under `storage/logs` (single, daily, nested) |
+| `logs-read` | Head or tail of one log file, with line and byte caps |
+| `logs-search` | Literal search across one or all listed log files |
 
 Pulse periods are `1h`, `6h`, `24h`, and `7d`.
+
+Log paths stay under `storage/logs`. Traversal, absolute paths, and non-`.log` files are refused. Large files are truncated by `porthole.logs.lines_max` and `porthole.logs.bytes_max`.
 
 Horizon job payloads are reduced to the display name. Telescope query bindings, cookies, authorization headers, and trace arguments are removed. Sensitive array keys such as `password`, `token`, `secret`, `email`, `account_number`, `routing_number`, and `private_key` are replaced with `[redacted]`. On a request to a route this package registered, `code`, `state`, `nonce`, `code_verifier`, `code_challenge`, `redirect_uri`, and `return_url` are replaced too, and that request path loses its query string. Other application routes keep their query strings and those fields. Quoted SQL strings and unquoted numeric literals are masked. Absolute URLs lose their query strings, including in exception, log, and job-exception text. This is not a tenant boundary: a caller who can read a source can still see that source's operational data.
 
@@ -535,7 +541,7 @@ These tools are absent from `tools/list` until the matching flag is true. Callin
 
 `writes_enabled` registers `horizon-pause`, `horizon-continue`, and `horizon-retry-failed-job`. Those tools also require a defined, passing `mutateHorizon` gate. Retry stays refused unless `writes.retry_allowlist` contains the failed job's display name. An empty allowlist refuses every retry.
 
-`destructive_enabled` registers `telescope-prune`. Retention hours must fall between the prune floor and `prune_max_hours` (default 168). Outside `local`, the floor is at least 24 hours even when `prune_min_hours` is lower. `prune_allow_short_retention` is honored only when the environment is `local`.
+`destructive_enabled` registers `telescope-prune` and `logs-delete`. Retention hours for prune must fall between the prune floor and `prune_max_hours` (default 168). Outside `local`, the floor is at least 24 hours even when `prune_min_hours` is lower. `prune_allow_short_retention` is honored only when the environment is `local`. `logs-delete` removes listed `.log` files under `storage/logs` only; it never appends or edits log contents.
 
 ## Tests
 
